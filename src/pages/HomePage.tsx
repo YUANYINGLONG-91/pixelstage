@@ -1,3 +1,4 @@
+import { GITHUB_URL } from "@/lib/constants";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -594,12 +595,12 @@ function OpenSource() {
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <Button variant="primary" asChild>
-            <a href="https://github.com" target="_blank" rel="noreferrer">
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer">
               <Github /> Star on GitHub
             </a>
           </Button>
           <Button variant="secondary" asChild>
-            <a href="https://github.com" target="_blank" rel="noreferrer">
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer">
               Contribute
             </a>
           </Button>

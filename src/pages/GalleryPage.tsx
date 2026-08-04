@@ -1,3 +1,4 @@
+import { GITHUB_URL } from "@/lib/constants";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Download, ExternalLink, Layers as LayersIcon } from "lucide-react";
@@ -80,7 +81,7 @@ export default function GalleryPage() {
             pixels join this page.
           </p>
           <Button variant="secondary" className="mt-6" asChild>
-            <a href="https://github.com" target="_blank" rel="noreferrer">
+            <a href={GITHUB_URL} target="_blank" rel="noreferrer">
               Contribute on GitHub
             </a>
           </Button>

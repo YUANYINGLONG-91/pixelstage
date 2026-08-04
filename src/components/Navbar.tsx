@@ -1,3 +1,4 @@
+import { GITHUB_URL } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Github, Menu, X } from "lucide-react";
@@ -64,7 +65,7 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           <a
-            href="https://github.com"
+            href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub"

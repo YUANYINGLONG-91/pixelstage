@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Wordmark } from "@/components/Navbar";
+import { GITHUB_URL } from "@/lib/constants";
 
 const COLS: { title: string; links: { label: string; to: string }[] }[] = [
   {
@@ -21,9 +22,9 @@ const COLS: { title: string; links: { label: string; to: string }[] }[] = [
   {
     title: "Community",
     links: [
-      { label: "GitHub", to: "https://github.com" },
-      { label: "Issues", to: "https://github.com" },
-      { label: "Contribute", to: "https://github.com" },
+      { label: "GitHub", to: GITHUB_URL },
+      { label: "Issues", to: `${GITHUB_URL}/issues` },
+      { label: "Contribute", to: `${GITHUB_URL}/blob/main/CONTRIBUTING.md` },
     ],
   },
 ];

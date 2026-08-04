@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Navbar from "@/components/Navbar";
@@ -8,9 +9,21 @@ import EditorPage from "@/pages/EditorPage";
 import GuidePage from "@/pages/GuidePage";
 import GalleryPage from "@/pages/GalleryPage";
 
+const TITLES: [RegExp, string][] = [
+  [/^\/editor/, "Editor — PixelStage"],
+  [/^\/guide/, "Guide — PixelStage"],
+  [/^\/gallery/, "Scene Gallery — PixelStage"],
+];
+
 export default function App() {
   const { pathname } = useLocation();
   const isEditor = pathname.startsWith("/editor");
+
+  useEffect(() => {
+    document.title =
+      TITLES.find(([re]) => re.test(pathname))?.[1] ??
+      "PixelStage — HD-2D for the rest of us";
+  }, [pathname]);
 
   return (
     <TooltipProvider delayDuration={300}>

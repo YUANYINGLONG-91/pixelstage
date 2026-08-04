@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { migrateScene, serializeScene } from "./scene";
+import { computeScreenPos } from "./parallax";
 import { createLayer } from "./types";
 
 const layers = [
@@ -36,5 +37,19 @@ describe("migrateScene", () => {
     expect(() => migrateScene(null)).toThrow();
     expect(() => migrateScene({})).toThrow();
     expect(() => migrateScene({ layers: [{ name: "no src" }] })).toThrow();
+  });
+});
+
+describe("closed loop: exported JSON reproduces the editor picture (PRD §3-F4)", () => {
+  it("runtime.js formula matches computeScreenPos for every layer", () => {
+    const scene = serializeScene("Demo", { width: 960, height: 540 }, { x: 320, y: 180 }, layers);
+    // simulate the ~20-line runtime against the exported file
+    const restored = migrateScene(JSON.parse(JSON.stringify(scene)));
+    for (const l of restored.layers) {
+      // these two lines ARE runtime.js
+      const x = l.offsetX - restored.camera.x * l.factorX;
+      const y = l.offsetY - restored.camera.y * l.factorY;
+      expect(computeScreenPos(l, restored.camera)).toEqual({ x, y });
+    }
   });
 });

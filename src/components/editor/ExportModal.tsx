@@ -60,6 +60,19 @@ export default function ExportModal({
     toast(`Downloaded ${slug(name)}.json`, { variant: "success" });
   };
 
+  // project file: always fully self-contained (embedded base64) for moving between machines
+  const downloadProject = () => {
+    const project = toJSON();
+    const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug(name)}.pixelstage.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`Downloaded ${slug(name)}.pixelstage.json`, { variant: "success" });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[720px]">
@@ -116,7 +129,10 @@ export default function ExportModal({
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
+          <Button variant="ghost" size="sm" onClick={downloadProject}>
+            <Download /> Project (.pixelstage.json)
+          </Button>
           <Button variant="secondary" size="sm" onClick={() => void copy(json, "scene.json")}>
             {copied ? <Check /> : <Copy />} Copy JSON
           </Button>

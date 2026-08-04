@@ -1,3 +1,4 @@
+import { GITHUB_URL } from "@/lib/constants";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, FileJson, FolderOpen, Github, RotateCcw } from "lucide-react";
@@ -200,7 +201,7 @@ export default function TopBar({
         </Tooltip>
         <div className="mx-1 h-4 w-px bg-border" />
         <a
-          href="https://github.com"
+          href={GITHUB_URL}
           target="_blank"
           rel="noreferrer"
           aria-label="GitHub"
