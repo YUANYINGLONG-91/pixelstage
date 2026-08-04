@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <!-- factor diagram: camera arrow + three layer strips with proportional offsets -->
+  <rect width="640" height="360" fill="#0F1219"/>
+  <g font-family="monospace" font-size="12">
+    <!-- camera -->
+    <rect x="280" y="24" width="80" height="48" fill="none" stroke="#FFB648" stroke-width="2"/>
+    <text x="320" y="52" fill="#FFB648" text-anchor="middle">cam.x</text>
+    <line x1="360" y1="48" x2="440" y2="48" stroke="#FFB648" stroke-width="2"/>
+    <polygon points="440,48 428,42 428,54" fill="#FFB648"/>
+
+    <!-- layer 0.0 -->
+    <rect x="60" y="110" width="520" height="40" fill="#151926" stroke="#232B3B"/>
+    <text x="70" y="134" fill="#A4ADBF">factor 0.0 (locked)</text>
+    <line x1="480" y1="130" x2="480" y2="130" stroke="#4FD1B5" stroke-width="4"/>
+    <text x="500" y="134" fill="#4FD1B5">+0px</text>
+
+    <!-- layer 0.5 -->
+    <rect x="60" y="180" width="520" height="40" fill="#151926" stroke="#232B3B"/>
+    <rect x="20" y="180" width="40" height="40" fill="#151926" stroke="#232B3B"/>
+    <text x="70" y="204" fill="#A4ADBF">factor 0.5</text>
+    <line x1="440" y1="200" x2="480" y2="200" stroke="#4FD1B5" stroke-width="2"/>
+    <polygon points="480,200 470,195 470,205" fill="#4FD1B5"/>
+    <text x="500" y="204" fill="#4FD1B5">−cam×0.5</text>
+
+    <!-- layer 1.0 -->
+    <rect x="60" y="250" width="520" height="40" fill="#151926" stroke="#232B3B"/>
+    <rect x="-20" y="250" width="80" height="40" fill="#151926" stroke="#232B3B"/>
+    <text x="70" y="274" fill="#A4ADBF">factor 1.0 (glued)</text>
+    <line x1="400" y1="270" x2="480" y2="270" stroke="#FFB648" stroke-width="2"/>
+    <polygon points="480,270 468,264 468,276" fill="#FFB648"/>
+    <text x="500" y="274" fill="#FFB648">−cam×1.0</text>
+
+    <text x="60" y="330" fill="#5E6880">screenPos = layerBase + layerOffset − cameraPos × layerFactor</text>
+  </g>
+</svg>

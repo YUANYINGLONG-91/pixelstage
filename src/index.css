@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-0: #0a0c10;
+  --bg-1: #0f1219;
+  --bg-2: #151926;
+  --bg-3: #1c2231;
+  --border: #232b3b;
+  --border-strong: #323d54;
+  --text-1: #edeff5;
+  --text-2: #a4adbf;
+  --text-3: #5e6880;
+  --amber: #ffb648;
+  --amber-hover: #ffc877;
+  --amber-dim: rgba(255, 182, 72, 0.12);
+  --teal: #4fd1b5;
+  --teal-dim: rgba(79, 209, 181, 0.1);
+  --danger: #f27070;
+  --success: #62d189;
+  --code-bg: #0d1017;
+  --magenta: #e56cf0;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--bg-0);
+    color: var(--text-1);
+    font-family: Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  img,
+  canvas {
+    image-rendering: pixelated;
+  }
+  .font-mono {
+    font-feature-settings: "tnum";
+  }
+  ::selection {
+    background: var(--amber-dim);
+    color: var(--amber-hover);
+  }
+  *:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--bg-3);
+    border: 2px solid var(--bg-0);
+    border-radius: 0;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer utilities {
+  /* 8px transparency checkerboard */
+  .checker {
+    background-image: repeating-conic-gradient(
+      var(--bg-1) 0% 25%,
+      var(--bg-2) 0% 50%
+    );
+    background-size: 16px 16px;
+  }
+  /* 24px pixel-grid cross-hatch texture */
+  .pixel-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  /* 6px stepped pixel-notch corners (primary CTAs, hero frame) */
+  .pixel-notch {
+    clip-path: polygon(
+      0 6px, 6px 6px, 6px 0,
+      calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px,
+      100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px),
+      calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)
+    );
+  }
+  /* subtle scanlines overlay for the editor viewport */
+  .scanlines {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.04) 0 1px,
+      transparent 1px 3px
+    );
+  }
+  .amber-glow {
+    box-shadow:
+      0 0 0 1px var(--amber),
+      0 0 24px rgba(255, 182, 72, 0.15);
+  }
+}
