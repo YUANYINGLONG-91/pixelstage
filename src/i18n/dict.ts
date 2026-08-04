@@ -155,6 +155,33 @@ export const dict = {
     zh: "本地保存失败 —— 存储可能已满。请尽快导出项目文件。",
   },
 
+  /* ------------------------------- onboarding ------------------------------- */
+  "onb.s1t": { en: "Step 1 / 4 — Load a scene", zh: "第 1 步 / 共 4 步 —— 载入场景" },
+  "onb.s1b": {
+    en: "Click \"Load demo scene\" in the center of the canvas, or drag your own PNG/JPG layers in (background first, foreground last).",
+    zh: "点击画布中央的「加载示例场景」，或直接把 PNG/JPG 图片拖进来（先背景，再前景）。",
+  },
+  "onb.s2t": { en: "Step 2 / 4 — Drag the camera", zh: "第 2 步 / 共 4 步 —— 拖动镜头" },
+  "onb.s2b": {
+    en: "Press and drag on the canvas — near layers move fast, far layers move slow. That's 2.5D parallax. The AUTO SWEEP toggle (bottom right) pans the camera for you.",
+    zh: "按住画布左右拖动 —— 近景跑得快、远景几乎不动，这就是 2.5D 视差。右下角的「自动扫镜」开关可以让镜头自己平移。",
+  },
+  "onb.s3t": { en: "Step 3 / 4 — Tune depth factors", zh: "第 3 步 / 共 4 步 —— 调视差系数" },
+  "onb.s3b": {
+    en: "Select a layer on the left, then drag factorX / factorY on the right: 0 = pinned to screen, 1 = glued to camera. The formula below shows the layer's real displacement live.",
+    zh: "左侧选中一个图层，右侧拖动 factorX / factorY 滑杆：0 = 钉死在屏幕，1 = 完全跟随镜头。下方公式会实时显示该层的实际位移。",
+  },
+  "onb.s4t": { en: "Step 4 / 4 — Export scene.json", zh: "第 4 步 / 共 4 步 —— 导出 scene.json" },
+  "onb.s4b": {
+    en: "Press Ctrl+E to export. Your game engine renders the exact same picture with the included ~20-line runtime — Phaser, Godot, Electron, or a bare <canvas>.",
+    zh: "按 Ctrl+E 导出。游戏端用附带的约 20 行 runtime 代码即可逐像素复现画面 —— Phaser、Godot、Electron 或裸 <canvas> 均可。",
+  },
+  "onb.next": { en: "Next", zh: "下一步" },
+  "onb.prev": { en: "Back", zh: "上一步" },
+  "onb.skip": { en: "Skip tour", zh: "跳过教程" },
+  "onb.done": { en: "Start creating", zh: "开始创作" },
+  "onb.help": { en: "Tutorial", zh: "新手教程" },
+
   /* ---------------------------------- home ---------------------------------- */
   "hero.eyebrow": { en: "Open-source 2.5D parallax scene editor", zh: "开源 2.5D 视差场景编辑器" },
   "hero.h1a": { en: "HD-2D FOR THE", zh: "HD-2D，" },

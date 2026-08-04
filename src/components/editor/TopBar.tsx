@@ -1,7 +1,7 @@
 import { GITHUB_URL } from "@/lib/constants";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, FileJson, FolderOpen, Github, RotateCcw } from "lucide-react";
+import { ArrowLeft, FileJson, FolderOpen, Github, GraduationCap, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,10 +29,12 @@ export default function TopBar({
   savedAt,
   onExport,
   onOpenProject,
+  onOpenTutorial,
 }: {
   savedAt: Date | null;
   onExport: () => void;
   onOpenProject: () => void;
+  onOpenTutorial: () => void;
 }) {
   const { name, setName, canvasSize, setCanvasSize, resetScene, layers } = useSceneStore();
   const [editingName, setEditingName] = useState(false);
@@ -200,6 +202,14 @@ export default function TopBar({
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t("ed.resetScene")}</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" onClick={onOpenTutorial} aria-label="Tutorial">
+              <GraduationCap />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t("onb.help")}</TooltipContent>
         </Tooltip>
         <LangToggle />
         <div className="mx-1 h-4 w-px bg-border" />

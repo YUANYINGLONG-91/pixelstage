@@ -3,6 +3,7 @@ import EditorViewport from "@/components/editor/EditorViewport";
 import ExportModal from "@/components/editor/ExportModal";
 import Inspector from "@/components/editor/Inspector";
 import LayerPanel from "@/components/editor/LayerPanel";
+import Onboarding, { useOnboarding } from "@/components/editor/Onboarding";
 import OpenProjectModal from "@/components/editor/OpenProjectModal";
 import ShortcutsModal from "@/components/editor/ShortcutsModal";
 import StatusBar from "@/components/editor/StatusBar";
@@ -21,6 +22,7 @@ export default function EditorPage() {
   const dragDepth = useRef(0);
   const { savedAt, restored } = useAutosave();
   const t = useT();
+  const onboarding = useOnboarding();
 
   // one-time restore toast
   useEffect(() => {
@@ -152,6 +154,7 @@ export default function EditorPage() {
         savedAt={savedAt}
         onExport={() => setExportOpen(true)}
         onOpenProject={() => setOpenProjectOpen(true)}
+        onOpenTutorial={onboarding.reopen}
       />
 
       <div className="flex min-h-0 flex-1">
@@ -159,6 +162,7 @@ export default function EditorPage() {
           <LayerPanel />
         </div>
         <EditorViewport dragOver={dragOver} onBrowse={() => fileInputRef.current?.click()} />
+        <Onboarding open={onboarding.open} onClose={onboarding.close} />
         <div className="hidden md:flex">
           <Inspector />
         </div>
