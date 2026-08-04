@@ -1,4 +1,3 @@
-import { GITHUB_URL } from "@/lib/constants";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Download, ExternalLink, Layers as LayersIcon } from "lucide-react";
@@ -21,43 +20,51 @@ import {
   type PlaceholderTheme,
 } from "@/core/placeholder";
 import { saveProject } from "@/core/storage";
+import { useT } from "@/i18n";
+import type { DictKey } from "@/i18n/dict";
+import { GITHUB_URL } from "@/lib/constants";
 import { toast } from "@/store/toastStore";
 import { cn } from "@/lib/utils";
 
 const THEMES: PlaceholderTheme[] = ["valley", "alley", "dungeon"];
-const FILTERS = ["ALL", "NATURE", "URBAN", "INTERIOR"] as const;
+const FILTERS: { key: string; label: DictKey }[] = [
+  { key: "ALL", label: "gal.all" },
+  { key: "NATURE", label: "gal.nature" },
+  { key: "URBAN", label: "gal.urban" },
+  { key: "INTERIOR", label: "gal.interior" },
+];
+const DESC_KEYS: Record<PlaceholderTheme, DictKey> = {
+  valley: "gal.valleyDesc",
+  alley: "gal.alleyDesc",
+  dungeon: "gal.dungeonDesc",
+};
 
 export default function GalleryPage() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("ALL");
+  const t = useT();
+  const [filter, setFilter] = useState("ALL");
   const [exploded, setExploded] = useState<PlaceholderTheme | null>(null);
 
-  const visible = THEMES.filter((t) => filter === "ALL" || PLACEHOLDER_META[t].tag === filter);
+  const visible = THEMES.filter((x) => filter === "ALL" || PLACEHOLDER_META[x].tag === filter);
 
   return (
     <main className="mx-auto max-w-[1200px] px-4 pb-24 pt-40">
       <FadeUp>
-        <SectionEyebrow>Scene gallery</SectionEyebrow>
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-text-1">
-          Scenes, ready to dissect.
-        </h1>
-        <p className="mt-4 max-w-[560px] text-[17px] text-text-2">
-          Every scene below is a real PixelStage export — drag the previews, explode the layer
-          stacks, open them in the editor, or download the JSON and render it with the 20-line
-          snippet.
-        </p>
+        <SectionEyebrow>{t("gal.eyebrow")}</SectionEyebrow>
+        <h1 className="mt-4 text-4xl font-bold tracking-tight text-text-1">{t("gal.h1")}</h1>
+        <p className="mt-4 max-w-[560px] text-[17px] text-text-2">{t("gal.lead")}</p>
         <div className="mt-6 flex gap-2">
           {FILTERS.map((f) => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.key}
+              onClick={() => setFilter(f.key)}
               className={cn(
                 "rounded-sm border px-2.5 py-1 font-mono text-[11px] transition-colors",
-                filter === f
+                filter === f.key
                   ? "border-amber bg-amber-dim text-amber"
                   : "border-border bg-bg-2 text-text-3 hover:text-text-1"
               )}
             >
-              {f}
+              {t(f.label)}
             </button>
           ))}
         </div>
@@ -74,15 +81,11 @@ export default function GalleryPage() {
       {/* submit CTA */}
       <FadeUp className="mt-20">
         <div className="mx-auto max-w-[620px] rounded-md border border-dashed border-border-strong bg-bg-1 p-10 text-center">
-          <p className="font-pixel text-lg text-text-1">BUILT A SCENE?</p>
-          <p className="mt-3 text-[15px] text-text-2">
-            The gallery grows by pull request. Export your scene.json with embedded assets, open a
-            PR against <code className="font-mono text-xs text-teal">gallery/</code>, and your
-            pixels join this page.
-          </p>
+          <p className="font-pixel text-lg text-text-1">{t("gal.submitTitle")}</p>
+          <p className="mt-3 text-[15px] text-text-2">{t("gal.submitBody")}</p>
           <Button variant="secondary" className="mt-6" asChild>
             <a href={GITHUB_URL} target="_blank" rel="noreferrer">
-              Contribute on GitHub
+              {t("gal.submitBtn")}
             </a>
           </Button>
         </div>
@@ -97,6 +100,7 @@ export default function GalleryPage() {
 
 function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: () => void }) {
   const navigate = useNavigate();
+  const t = useT();
   const scene = getCachedPlaceholderScene(theme);
   const meta = PLACEHOLDER_META[theme];
   const [hintVisible, setHintVisible] = useState(true);
@@ -118,7 +122,7 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
     a.download = `${meta.name.toLowerCase().replace(/\s+/g, "-")}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast("Scene JSON downloaded", { variant: "success" });
+    toast(t("gal.downloaded"), { variant: "success" });
   };
 
   return (
@@ -130,7 +134,7 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
             960×540
           </span>
           <span className="rounded-sm border border-border bg-bg-2/85 px-1.5 py-0.5 font-mono text-[10px] text-text-3">
-            {scene.layers.length} LAYERS
+            {scene.layers.length} {t("gal.layersChip")}
           </span>
         </div>
         {hintVisible && (
@@ -143,9 +147,9 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
       <div className="p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-text-1">{meta.name}</h3>
-          <MonoChip variant="amber">{meta.tag}</MonoChip>
+          <MonoChip variant="amber">{t(FILTERS.find((f) => f.key === meta.tag)!.label)}</MonoChip>
         </div>
-        <p className="mt-1.5 text-sm text-text-2">{meta.description}</p>
+        <p className="mt-1.5 text-sm text-text-2">{t(DESC_KEYS[theme])}</p>
 
         <div className="mt-3 space-y-0.5">
           {scene.layers.map((l) => (
@@ -159,13 +163,13 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
 
         <div className="mt-4 flex gap-2">
           <Button variant="primary" size="sm" onClick={() => void openInEditor()}>
-            <ExternalLink /> Open in Editor
+            <ExternalLink /> {t("gal.open")}
           </Button>
           <Button variant="secondary" size="sm" onClick={downloadJson}>
             <Download /> JSON
           </Button>
           <Button variant="ghost" size="sm" onClick={onExplode}>
-            <LayersIcon /> Explode
+            <LayersIcon /> {t("gal.explode")}
           </Button>
         </div>
       </div>
@@ -183,6 +187,7 @@ function ExplodeModal({
   onClose: () => void;
 }) {
   const navigate = useNavigate();
+  const t = useT();
   const [explodedView, setExplodedView] = useState(true);
   if (!theme) return null;
   const scene = getCachedPlaceholderScene(theme);
@@ -199,7 +204,7 @@ function ExplodeModal({
       <DialogContent className="max-w-[880px]">
         <DialogHeader>
           <DialogTitle>{meta.name.toUpperCase()}</DialogTitle>
-          <DialogDescription>{meta.description}</DialogDescription>
+          <DialogDescription>{t(DESC_KEYS[theme])}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6 md:grid-cols-[60%_40%]">
@@ -244,10 +249,10 @@ function ExplodeModal({
               </div>
             </div>
             <div className="mt-3 flex items-center justify-between">
-              <p className="font-mono text-[10px] text-text-3">layer separation = depth</p>
+              <p className="font-mono text-[10px] text-text-3">{t("gal.separation")}</p>
               <div className="flex items-center gap-2">
                 <Switch checked={explodedView} onCheckedChange={setExplodedView} className="scale-90" />
-                <span className="font-mono text-[11px] text-text-3">EXPLODED VIEW</span>
+                <span className="font-mono text-[11px] text-text-3">{t("gal.explodedView")}</span>
               </div>
             </div>
           </div>
@@ -256,10 +261,10 @@ function ExplodeModal({
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-2">
               {[
-                ["LAYERS", String(scene.layers.length)],
-                ["CANVAS", "960×540"],
+                [t("gal.layersStat"), String(scene.layers.length)],
+                [t("gal.canvasStat"), "960×540"],
                 ["FX RANGE", `${Math.min(...fxValues).toFixed(2)}–${Math.max(...fxValues).toFixed(2)}`],
-                ["TAG", meta.tag],
+                [t("gal.tagStat"), t(FILTERS.find((f) => f.key === meta.tag)!.label)],
               ].map(([k, v]) => (
                 <div key={k} className="rounded border border-border bg-bg-2 p-2.5">
                   <p className="font-mono text-[9px] text-text-3">{k}</p>
@@ -293,7 +298,7 @@ function ExplodeModal({
             </CodeBlock>
 
             <Button variant="primary" size="sm" onClick={() => void openInEditor()}>
-              <ExternalLink /> Open in Editor
+              <ExternalLink /> {t("gal.open")}
             </Button>
           </div>
         </div>

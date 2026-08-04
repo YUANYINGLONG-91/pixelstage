@@ -45,7 +45,7 @@ export function useAutosave() {
             await saveProject(useSceneStore.getState().toJSON());
             setSavedAt(new Date());
           } catch {
-            toast("Local save failed — storage may be full. Export a project file soon.", {
+            toast("本地保存失败 —— 存储可能已满，请尽快导出项目文件 / Local save failed — storage full.", {
               variant: "danger",
               duration: 4000,
             });

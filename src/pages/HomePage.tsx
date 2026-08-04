@@ -1,4 +1,3 @@
-import { GITHUB_URL } from "@/lib/constants";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -24,6 +23,9 @@ import { highlightJs, highlightJson } from "@/components/editor/ExportModal";
 import { getCachedPlaceholderScene } from "@/core/placeholder";
 import { RUNTIME_SNIPPET } from "@/core/scene";
 import type { Camera } from "@/core/types";
+import { useT } from "@/i18n";
+import type { DictKey } from "@/i18n/dict";
+import { GITHUB_URL } from "@/lib/constants";
 import { toast } from "@/store/toastStore";
 
 const DEMO_JSON = `{
@@ -57,11 +59,12 @@ export default function HomePage() {
 
 function Hero() {
   const navigate = useNavigate();
+  const t = useT();
   const scene = getCachedPlaceholderScene("valley");
   const [camera, setCamera] = useState<Camera>(scene.camera);
   const [playing, setPlaying] = useState(true);
   const [dragged, setDragged] = useState(false);
-  const headline = "HD-2D FOR THE";
+  const headline = t("hero.h1a");
 
   return (
     <section className="pixel-grid relative flex min-h-screen items-center overflow-hidden pt-14">
@@ -82,20 +85,20 @@ function Hero() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="flex items-center gap-3"
           >
-            <SectionEyebrow>Open-source 2.5D parallax scene editor</SectionEyebrow>
+            <SectionEyebrow>{t("hero.eyebrow")}</SectionEyebrow>
             <MonoChip>MIT</MonoChip>
           </motion.div>
 
           <h1 className="mt-6 font-pixel text-[clamp(36px,5.5vw,60px)] font-bold leading-[1.1] text-text-1">
             {headline.split("").map((c, i) => (
               <motion.span
-                key={i}
+                key={`${headline}-${i}`}
                 className="inline-block"
                 initial={{ opacity: 0, y: "60%" }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.15 + i * 0.03, ease: [0.16, 1, 0.3, 1] }}
               >
-                {c === " " ? " " : c}
+                {c === " " ? " " : c}
               </motion.span>
             ))}
             <br />
@@ -105,7 +108,7 @@ function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.15 + headline.length * 0.03, ease: [0.16, 1, 0.3, 1] }}
             >
-              REST OF US
+              {t("hero.h1b")}
             </motion.span>
             <span className="animate-caret-blink text-amber">▮</span>
           </h1>
@@ -116,9 +119,7 @@ function Hero() {
             transition={{ duration: 0.6, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="mt-6 max-w-[520px] text-[17px] leading-relaxed text-text-2"
           >
-            PixelStage is a professional web editor for layered pixel parallax scenes. Import your
-            art, tune per-layer depth factors, drag a virtual camera, and export one portable JSON
-            your engine renders in ~20 lines. No Unreal pipeline. No engine lock-in. No cost.
+            {t("hero.sub")}
           </motion.p>
 
           <motion.div
@@ -128,7 +129,7 @@ function Hero() {
             className="mt-8 flex flex-wrap gap-3"
           >
             <Button variant="primary" onClick={() => navigate("/editor")}>
-              Launch the Editor <ArrowRight />
+              {t("hero.launch")} <ArrowRight />
             </Button>
             <Button
               variant="secondary"
@@ -136,7 +137,7 @@ function Hero() {
                 document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })
               }
             >
-              How it works
+              {t("hero.howItWorks")}
             </Button>
           </motion.div>
 
@@ -146,10 +147,10 @@ function Hero() {
             transition={{ duration: 0.6, delay: 1 }}
             className="mt-8 flex flex-wrap gap-2"
           >
-            <MonoChip>CANVAS 2D</MonoChip>
-            <MonoChip>0 RUNTIME DEPS</MonoChip>
-            <MonoChip>LOCAL-FIRST</MonoChip>
-            <MonoChip>~20 LINE RUNTIME</MonoChip>
+            <MonoChip>{t("hero.chip1")}</MonoChip>
+            <MonoChip>{t("hero.chip2")}</MonoChip>
+            <MonoChip>{t("hero.chip3")}</MonoChip>
+            <MonoChip>{t("hero.chip4")}</MonoChip>
           </motion.div>
         </div>
 
@@ -183,7 +184,7 @@ function Hero() {
               </div>
               {!dragged && (
                 <div className="absolute bottom-2 left-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1 font-mono text-[10px] text-amber transition-opacity duration-500">
-                  ✥ DRAG TO MOVE CAMERA
+                  {t("hero.drag")}
                 </div>
               )}
             </div>
@@ -191,13 +192,13 @@ function Hero() {
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Switch checked={playing} onCheckedChange={setPlaying} className="scale-90" />
-              <span className="font-mono text-[11px] text-text-3">AUTO SWEEP</span>
+              <span className="font-mono text-[11px] text-text-3">{t("hero.autoSweep")}</span>
             </div>
             <button
               onClick={() => setCamera({ ...scene.camera })}
               className="font-mono text-[11px] text-text-3 transition-colors hover:text-amber"
             >
-              RESET CAMERA
+              {t("hero.resetCamera")}
             </button>
           </div>
         </motion.div>
@@ -208,25 +209,19 @@ function Hero() {
 
 /* --------------------------------- Section 2 --------------------------------- */
 
-const TICKER = [
-  "IMPORT PNG / JPG",
-  "REORDER · RENAME · SHOW / HIDE",
-  "FACTORX / FACTORY 0.00 — 1.00",
-  "PER-LAYER SCALE + OFFSET",
-  "DRAGGABLE VIRTUAL CAMERA",
-  "AUTO-SWEEP PLAYBACK",
-  "EXPORT SCENE.JSON",
-  "AUTOSAVE → LOCALSTORAGE",
+const TICKER_KEYS: DictKey[] = [
+  "tick.1", "tick.2", "tick.3", "tick.4", "tick.5", "tick.6", "tick.7", "tick.8",
 ];
 
 function SpecTicker() {
-  const items = [...TICKER, ...TICKER];
+  const t = useT();
+  const items = [...TICKER_KEYS, ...TICKER_KEYS];
   return (
     <section className="overflow-hidden border-y border-border bg-bg-1 py-3.5">
       <div className="flex w-max animate-marquee gap-8 hover:[animation-play-state:paused]">
-        {items.map((t, i) => (
+        {items.map((k, i) => (
           <span key={i} className="flex items-center gap-8 font-mono text-xs text-text-3">
-            {t}
+            {t(k)}
             <span className="inline-block h-2 w-2 bg-amber" />
           </span>
         ))}
@@ -238,71 +233,60 @@ function SpecTicker() {
 /* --------------------------------- Section 3 --------------------------------- */
 
 function Problem() {
+  const t = useT();
+  const cardA: DictKey[] = ["prob.cardA.1", "prob.cardA.2", "prob.cardA.3"];
+  const cardB: DictKey[] = ["prob.cardB.1", "prob.cardB.2", "prob.cardB.3"];
+
   return (
     <section className="mx-auto max-w-[1200px] px-4 py-24 md:py-32">
       <FadeUp className="mx-auto max-w-[680px] text-center">
-        <SectionEyebrow className="justify-center">The problem</SectionEyebrow>
+        <SectionEyebrow className="justify-center">{t("prob.eyebrow")}</SectionEyebrow>
         <h2 className="mt-4 text-[clamp(28px,3.5vw,38px)] font-semibold leading-tight tracking-tight text-text-1">
-          Octopath's look without Octopath's budget.
+          {t("prob.h2")}
         </h2>
-        <p className="mt-4 text-[17px] leading-relaxed text-text-2">
-          Octopath Traveler and Wandering Sword built their "HD-2D" look on Unreal Engine 4 — real
-          3D scenes, camera rigs, volumetric light. Gorgeous. Also a team-of-fifty, multi-year,
-          engine-royalty affair. 99% of indie pixel games fake the same depth with plain 2D layers
-          — and until now, the tooling for that was a TODO comment.
-        </p>
+        <p className="mt-4 text-[17px] leading-relaxed text-text-2">{t("prob.lead")}</p>
       </FadeUp>
 
       <div className="mt-12 grid gap-6 md:grid-cols-2">
         <FadeUp delay={0.1}>
           <div className="h-full rounded-md border border-border bg-bg-1 p-7 opacity-90">
-            <MonoChip>UE4 HD-2D PIPELINE</MonoChip>
-            <h3 className="mt-4 font-pixel text-sm tracking-wide text-text-2">THE 1% PATH</h3>
+            <MonoChip>{t("prob.cardA.tag")}</MonoChip>
+            <h3 className="mt-4 font-pixel text-sm tracking-wide text-text-2">{t("prob.cardA.title")}</h3>
             <ul className="mt-5 space-y-3">
-              {[
-                "Full 3D scene + PBR lighting for a 2D-looking game",
-                "Camera rigs, DOF, volumetrics to maintain",
-                "Engine expertise + royalties",
-              ].map((t) => (
-                <li key={t} className="flex gap-3 text-[15px] text-text-2">
+              {cardA.map((k) => (
+                <li key={k} className="flex gap-3 text-[15px] text-text-2">
                   <X size={16} className="mt-0.5 shrink-0 text-text-3" />
-                  {t}
+                  {t(k)}
                 </li>
               ))}
             </ul>
             <p className="mt-6 border-t border-border pt-4 font-mono text-[11px] text-text-3">
-              TEAM: 20–50 · YEARS: 3+ · COST: $$$$$
+              {t("prob.cardA.stat")}
             </p>
           </div>
         </FadeUp>
 
         <FadeUp delay={0.2}>
           <div className="h-full rounded-md border border-amber/40 bg-bg-1 p-7 amber-glow">
-            <MonoChip variant="amber">LAYERED 2D PARALLAX</MonoChip>
-            <h3 className="mt-4 font-pixel text-sm tracking-wide text-amber">THE 99% PATH</h3>
+            <MonoChip variant="amber">{t("prob.cardB.tag")}</MonoChip>
+            <h3 className="mt-4 font-pixel text-sm tracking-wide text-amber">{t("prob.cardB.title")}</h3>
             <ul className="mt-5 space-y-3">
-              {[
-                "Draw your art once, in any pixel tool",
-                "Stack background → midground → foreground",
-                "Fake depth with one multiply: pos − cam × factor",
-              ].map((t) => (
-                <li key={t} className="flex gap-3 text-[15px] text-text-2">
+              {cardB.map((k) => (
+                <li key={k} className="flex gap-3 text-[15px] text-text-2">
                   <Check size={16} className="mt-0.5 shrink-0 text-teal" />
-                  {t}
+                  {t(k)}
                 </li>
               ))}
             </ul>
             <p className="mt-6 border-t border-border pt-4 font-mono text-[11px] text-amber">
-              TEAM: 1 · TIME: AN AFTERNOON · COST: $0
+              {t("prob.cardB.stat")}
             </p>
           </div>
         </FadeUp>
       </div>
 
       <FadeUp delay={0.3} className="mt-10 text-center">
-        <p className="text-lg font-semibold text-text-1">
-          PixelStage is the professional editor for the 99% path.
-        </p>
+        <p className="text-lg font-semibold text-text-1">{t("prob.closing")}</p>
       </FadeUp>
     </section>
   );
@@ -311,12 +295,13 @@ function Problem() {
 /* --------------------------------- Section 4 --------------------------------- */
 
 function HowItWorks() {
-  const steps = [
+  const t = useT();
+  const steps: { num: string; title: DictKey; h: DictKey; b: DictKey; visual: React.ReactNode }[] = [
     {
       num: "01",
-      title: "IMPORT",
-      h: "Drop in your layers",
-      body: "PNG or JPG, drag-and-drop or file picker. Background, midground, foreground — PixelStage stacks them onto a shared stage the moment they land.",
+      title: "how.s1.title",
+      h: "how.s1.h",
+      b: "how.s1.b",
       visual: (
         <div className="flex h-28 items-center justify-center rounded border border-dashed border-border-strong bg-bg-0">
           <div className="flex flex-col items-center gap-1.5">
@@ -331,9 +316,9 @@ function HowItWorks() {
     },
     {
       num: "02",
-      title: "TUNE",
-      h: "Dial in the depth",
-      body: "factorX / factorY per layer — 0 locks it in place, 1 glues it to the camera. Add scale and offset, drag the virtual camera, and watch the scene breathe.",
+      title: "how.s2.title",
+      h: "how.s2.h",
+      b: "how.s2.b",
       visual: (
         <div className="flex h-28 flex-col justify-center gap-3 rounded border border-border bg-bg-0 px-4 font-mono text-[11px]">
           <div className="flex items-center gap-2">
@@ -367,9 +352,9 @@ function HowItWorks() {
     },
     {
       num: "03",
-      title: "EXPORT",
-      h: "Ship one file",
-      body: "Layer order, assets, factors, canvas size — one portable scene.json. Consume it from Phaser, Godot, Electron, or raw Canvas with the snippet in the guide.",
+      title: "how.s3.title",
+      h: "how.s3.h",
+      b: "how.s3.b",
       visual: (
         <CodeBlock filename="scene.json" preClassName="!p-3 text-[10px] max-h-28 overflow-hidden">
           {highlightJson(`{
@@ -387,9 +372,9 @@ function HowItWorks() {
   return (
     <section id="how-it-works" className="mx-auto max-w-[1200px] px-4 py-24 md:py-32">
       <FadeUp>
-        <SectionEyebrow>Workflow</SectionEyebrow>
+        <SectionEyebrow>{t("how.eyebrow")}</SectionEyebrow>
         <h2 className="mt-4 text-[clamp(28px,3.5vw,38px)] font-semibold tracking-tight text-text-1">
-          Three steps. One JSON.
+          {t("how.h2")}
         </h2>
       </FadeUp>
       <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -398,10 +383,10 @@ function HowItWorks() {
             <div className="flex h-full min-h-[320px] flex-col rounded-md border border-border bg-bg-1 p-7">
               <span className="font-pixel text-[28px] text-amber">{s.num}</span>
               <span className="mt-1 font-mono text-[10px] tracking-widest text-text-3">
-                / {s.title}
+                / {t(s.title)}
               </span>
-              <h3 className="mt-3 text-xl font-semibold text-text-1">{s.h}</h3>
-              <p className="mt-2 flex-1 text-[15px] leading-relaxed text-text-2">{s.body}</p>
+              <h3 className="mt-3 text-xl font-semibold text-text-1">{t(s.h)}</h3>
+              <p className="mt-2 flex-1 text-[15px] leading-relaxed text-text-2">{t(s.b)}</p>
               <div className="mt-5">{s.visual}</div>
             </div>
           </FadeUp>
@@ -413,46 +398,23 @@ function HowItWorks() {
 
 /* --------------------------------- Section 5 --------------------------------- */
 
-const FEATURES = [
-  {
-    icon: Layers,
-    h: "Layers",
-    b: "Import, reorder, rename, show/hide, delete. Your stack stays organized, drag-and-drop simple.",
-  },
-  {
-    icon: SlidersHorizontal,
-    h: "Per-layer parallax",
-    b: "factorX and factorY from 0.00 to 1.00, scale, and offset — every layer gets its own depth signature.",
-  },
-  {
-    icon: Move,
-    h: "Virtual camera",
-    b: "Drag across the viewport to preview depth in real time, or hit auto-sweep and let the camera pan for you.",
-  },
-  {
-    icon: FileJson,
-    h: "Portable JSON",
-    b: "One scene file: order, assets, factors, canvas size. Engine-agnostic by design, versioned schema.",
-  },
-  {
-    icon: HardDriveDownload,
-    h: "Local-first autosave",
-    b: "Every keystroke persists to localStorage. Export/import project files to move between machines. No account, no cloud, no telemetry.",
-  },
-  {
-    icon: Terminal,
-    h: "Zero-dep runtime",
-    b: "Reproduce your scene with ~20 lines of plain Canvas 2D. Read every line — it's yours.",
-  },
+const FEATURES: { icon: typeof Layers; h: DictKey; b: DictKey }[] = [
+  { icon: Layers, h: "feat.1.h", b: "feat.1.b" },
+  { icon: SlidersHorizontal, h: "feat.2.h", b: "feat.2.b" },
+  { icon: Move, h: "feat.3.h", b: "feat.3.b" },
+  { icon: FileJson, h: "feat.4.h", b: "feat.4.b" },
+  { icon: HardDriveDownload, h: "feat.5.h", b: "feat.5.b" },
+  { icon: Terminal, h: "feat.6.h", b: "feat.6.b" },
 ];
 
 function FeatureGrid() {
+  const t = useT();
   return (
     <section className="mx-auto max-w-[1200px] px-4 py-24 md:py-32">
       <FadeUp>
-        <SectionEyebrow>The tool</SectionEyebrow>
+        <SectionEyebrow>{t("feat.eyebrow")}</SectionEyebrow>
         <h2 className="mt-4 text-[clamp(28px,3.5vw,38px)] font-semibold tracking-tight text-text-1">
-          An editor, not a toy.
+          {t("feat.h2")}
         </h2>
       </FadeUp>
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -462,8 +424,8 @@ function FeatureGrid() {
               <div className="flex h-10 w-10 items-center justify-center rounded border border-border bg-bg-3 transition-colors group-hover:bg-amber-dim">
                 <f.icon size={18} className="text-amber transition-transform duration-150 group-hover:rotate-6" />
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-text-1">{f.h}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-text-2">{f.b}</p>
+              <h3 className="mt-4 text-lg font-semibold text-text-1">{t(f.h)}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-text-2">{t(f.b)}</p>
             </div>
           </FadeUp>
         ))}
@@ -475,16 +437,20 @@ function FeatureGrid() {
 /* --------------------------------- Section 6 --------------------------------- */
 
 function PortableJson() {
+  const t = useT();
+  const bullets: [DictKey, DictKey][] = [
+    ["json.b1h", "json.b1"],
+    ["json.b2h", "json.b2"],
+    ["json.b3h", "json.b3"],
+  ];
   return (
     <section className="mx-auto max-w-[1200px] px-4 py-24 md:py-32">
       <FadeUp>
-        <SectionEyebrow>Portable by design</SectionEyebrow>
+        <SectionEyebrow>{t("json.eyebrow")}</SectionEyebrow>
         <h2 className="mt-4 text-[clamp(28px,3.5vw,38px)] font-semibold tracking-tight text-text-1">
-          Your scene is a file.
+          {t("json.h2")}
         </h2>
-        <p className="mt-4 max-w-[640px] text-[17px] text-text-2">
-          Export drops a single scene.json. This is a real export — and the runtime that renders it.
-        </p>
+        <p className="mt-4 max-w-[640px] text-[17px] text-text-2">{t("json.lead")}</p>
       </FadeUp>
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         <FadeUp delay={0.1}>
@@ -497,30 +463,26 @@ function PortableJson() {
             {highlightJs(RUNTIME_SNIPPET.split("\n").slice(0, 14).join("\n"))}
           </CodeBlock>
           <ul className="mt-5 space-y-2.5">
-            {[
-              ["One multiply.", "screen = base + offset − cam × factor — that's the whole engine."],
-              ["No dependencies.", "Plain Canvas 2D, imageSmoothingEnabled = false."],
-              ["Any host.", "Phaser, Godot, Electron, or a bare <canvas>."],
-            ].map(([h, b]) => (
+            {bullets.map(([h, b]) => (
               <li key={h} className="text-[15px] text-text-2">
-                <strong className="text-text-1">{h}</strong>{" "}
-                <span className="font-mono text-[13px]">{b}</span>
+                <strong className="text-text-1">{t(h)}</strong>{" "}
+                <span className="font-mono text-[13px]">{t(b)}</span>
               </li>
             ))}
           </ul>
           <div className="mt-5 flex gap-3">
             <Button variant="secondary" size="sm" asChild>
-              <Link to="/guide">Read the full guide</Link>
+              <Link to="/guide">{t("json.readGuide")}</Link>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 void navigator.clipboard.writeText(RUNTIME_SNIPPET);
-                toast("runtime.js copied to clipboard", { variant: "success" });
+                toast(t("json.copied"), { variant: "success" });
               }}
             >
-              Copy runtime
+              {t("json.copyRuntime")}
             </Button>
           </div>
         </FadeUp>
@@ -532,6 +494,7 @@ function PortableJson() {
 /* --------------------------------- Section 7 --------------------------------- */
 
 function GalleryTeaser() {
+  const t = useT();
   const scenes = [
     { theme: "valley" as const, name: "Sunset Valley", layers: 4, range: "0.05–0.80" },
     { theme: "alley" as const, name: "Neon Alley", layers: 3, range: "0.10–0.85" },
@@ -541,16 +504,16 @@ function GalleryTeaser() {
     <section className="mx-auto max-w-[1200px] px-4 py-24 md:py-32">
       <FadeUp className="flex items-end justify-between">
         <div>
-          <SectionEyebrow>Scenes</SectionEyebrow>
+          <SectionEyebrow>{t("teaser.eyebrow")}</SectionEyebrow>
           <h2 className="mt-4 text-[clamp(28px,3.5vw,38px)] font-semibold tracking-tight text-text-1">
-            Made with PixelStage.
+            {t("teaser.h2")}
           </h2>
         </div>
         <Link
           to="/gallery"
           className="hidden font-mono text-[13px] text-text-2 transition-colors hover:text-amber sm:block"
         >
-          Browse the gallery →
+          {t("teaser.browse")}
         </Link>
       </FadeUp>
       <div className="mt-10 grid gap-5 md:grid-cols-3">
@@ -566,7 +529,9 @@ function GalleryTeaser() {
               <div className="flex items-center justify-between p-4">
                 <span className="font-semibold text-text-1">{s.name}</span>
                 <div className="flex gap-1.5">
-                  <MonoChip>{s.layers} LAYERS</MonoChip>
+                  <MonoChip>
+                    {s.layers} {t("teaser.layers")}
+                  </MonoChip>
                   <MonoChip variant="teal">{s.range}</MonoChip>
                 </div>
               </div>
@@ -581,34 +546,31 @@ function GalleryTeaser() {
 /* --------------------------------- Section 8 --------------------------------- */
 
 function OpenSource() {
+  const t = useT();
   return (
     <section className="mx-auto max-w-[680px] px-4 py-24 text-center md:py-32">
       <FadeUp>
-        <SectionEyebrow className="justify-center">Open source</SectionEyebrow>
+        <SectionEyebrow className="justify-center">{t("oss.eyebrow")}</SectionEyebrow>
         <h2 className="mt-4 text-[clamp(28px,3.5vw,38px)] font-semibold tracking-tight text-text-1">
-          Free as in freedom.
+          {t("oss.h2")}
         </h2>
-        <p className="mt-4 text-[17px] leading-relaxed text-text-2">
-          PixelStage is MIT-licensed and built in the open by an indie dev who needed it for their
-          own Wandering-Sword-style pixel game. Every line of the render loop is meant to be read,
-          forked, and shipped inside your game. Issues, PRs, and gallery submissions welcome.
-        </p>
+        <p className="mt-4 text-[17px] leading-relaxed text-text-2">{t("oss.body")}</p>
         <div className="mt-8 flex justify-center gap-3">
           <Button variant="primary" asChild>
             <a href={GITHUB_URL} target="_blank" rel="noreferrer">
-              <Github /> Star on GitHub
+              <Github /> {t("oss.star")}
             </a>
           </Button>
           <Button variant="secondary" asChild>
             <a href={GITHUB_URL} target="_blank" rel="noreferrer">
-              Contribute
+              {t("oss.contribute")}
             </a>
           </Button>
         </div>
         <div className="mt-8 flex justify-center gap-2">
-          <MonoChip>LICENSE MIT</MonoChip>
-          <MonoChip>TYPESCRIPT</MonoChip>
-          <MonoChip>NO TELEMETRY</MonoChip>
+          <MonoChip>{t("oss.chip1")}</MonoChip>
+          <MonoChip>{t("oss.chip2")}</MonoChip>
+          <MonoChip>{t("oss.chip3")}</MonoChip>
         </div>
       </FadeUp>
     </section>
@@ -619,6 +581,7 @@ function OpenSource() {
 
 function FinalCta() {
   const navigate = useNavigate();
+  const t = useT();
   return (
     <section className="pixel-grid relative border-t border-border py-24">
       <div
@@ -630,11 +593,12 @@ function FinalCta() {
       />
       <FadeUp className="relative mx-auto max-w-[680px] px-4 text-center">
         <h2 className="font-pixel text-[clamp(24px,3vw,32px)] leading-snug text-text-1">
-          YOUR NEXT SCENE IS ONE DRAG AWAY<span className="animate-caret-blink text-amber">▮</span>
+          {t("cta.h2")}
+          <span className="animate-caret-blink text-amber">▮</span>
         </h2>
-        <p className="mt-4 text-text-2">Open the editor. Drop a layer. Feel the depth.</p>
+        <p className="mt-4 text-text-2">{t("cta.sub")}</p>
         <Button variant="primary" className="mt-8" onClick={() => navigate("/editor")}>
-          Launch the Editor <ArrowRight />
+          {t("cta.launch")} <ArrowRight />
         </Button>
       </FadeUp>
     </section>

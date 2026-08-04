@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSceneStore } from "@/store/sceneStore";
+import { useT } from "@/i18n";
 import { toast } from "@/store/toastStore";
 
 export default function OpenProjectModal({
@@ -23,6 +24,7 @@ export default function OpenProjectModal({
   const fileRef = useRef<HTMLInputElement>(null);
   const [pasted, setPasted] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
 
   const load = (raw: unknown) => {
     try {
@@ -30,9 +32,9 @@ export default function OpenProjectModal({
       onOpenChange(false);
       setPasted("");
       setError(null);
-      toast("Project loaded", { variant: "success" });
+      toast(t("open.loaded"), { variant: "success" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid scene file");
+      setError(err instanceof Error ? err.message : t("open.invalid"));
     }
   };
 
@@ -40,7 +42,7 @@ export default function OpenProjectModal({
     try {
       load(JSON.parse(await file.text()));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Not valid JSON");
+      setError(err instanceof Error ? err.message : t("open.invalid"));
     }
   };
 
@@ -56,14 +58,14 @@ export default function OpenProjectModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[560px]">
         <DialogHeader>
-          <DialogTitle>OPEN PROJECT</DialogTitle>
-          <DialogDescription>.pixelstage.json or any exported scene.json</DialogDescription>
+          <DialogTitle>{t("open.title")}</DialogTitle>
+          <DialogDescription>{t("open.desc")}</DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="upload">
           <TabsList>
-            <TabsTrigger value="upload">UPLOAD FILE</TabsTrigger>
-            <TabsTrigger value="paste">PASTE JSON</TabsTrigger>
+            <TabsTrigger value="upload">{t("open.upload")}</TabsTrigger>
+            <TabsTrigger value="paste">{t("open.paste")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload">
@@ -72,7 +74,7 @@ export default function OpenProjectModal({
               className="flex h-36 w-full flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-bg-1 text-text-3 transition-colors hover:border-amber hover:text-amber"
             >
               <Upload size={20} />
-              <span className="font-mono text-xs">click to browse .json</span>
+              <span className="font-mono text-xs">{t("open.browse")}</span>
             </button>
             <input
               ref={fileRef}
@@ -86,7 +88,7 @@ export default function OpenProjectModal({
               }}
             />
             <p className="mt-2 font-mono text-[10px] text-text-3">
-              scenes without embedded images show magenta placeholders — re-import the art as layers
+              {t("open.missingNote")}
             </p>
           </TabsContent>
 
@@ -99,7 +101,7 @@ export default function OpenProjectModal({
               className="h-40 w-full resize-none rounded-md border border-border bg-code-bg p-3 font-mono text-xs text-text-1 placeholder:text-text-3 focus-visible:outline-none focus-visible:border-amber"
             />
             <Button variant="secondary" size="sm" className="mt-3" onClick={onValidate}>
-              Validate &amp; open
+              {t("open.validate")}
             </Button>
           </TabsContent>
         </Tabs>

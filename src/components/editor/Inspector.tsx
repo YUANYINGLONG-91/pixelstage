@@ -6,14 +6,9 @@ import { Switch } from "@/components/ui/switch";
 import { computeScreenPos } from "@/core/parallax";
 import type { Layer } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
+import { useT } from "@/i18n";
 import { toast } from "@/store/toastStore";
 
-const TIPS = [
-  "factor 0 = locked to screen, 1 = glued to camera. Most scenes live between 0.05 and 0.8.",
-  "Space toggles auto-sweep. R resets the camera.",
-  "factor > 1 moves faster than the camera — perfect for foreground occluders.",
-  "Keep factorY small (0.02–0.2) so vertical movement feels subtle.",
-];
 
 export default function Inspector() {
   const { layers, selectedId } = useSceneStore();
@@ -29,6 +24,7 @@ export default function Inspector() {
 /* ------------------------------ layer selected ------------------------------ */
 
 function LayerInspector({ layer }: { layer: Layer }) {
+  const t = useT();
   const { camera, updateLayer, duplicateLayer, removeLayer, insertLayer } = useSceneStore();
   const pos = computeScreenPos(layer, camera);
 
@@ -37,9 +33,9 @@ function LayerInspector({ layer }: { layer: Layer }) {
   const onDelete = () => {
     const removed = removeLayer(layer.id);
     if (!removed) return;
-    toast("Layer deleted", {
+    toast(t("layers.deleted"), {
       variant: "danger",
-      actionLabel: "Undo",
+      actionLabel: t("layers.undo"),
       duration: 4000,
       onAction: () => insertLayer(removed.layer, removed.index),
     });
@@ -49,7 +45,7 @@ function LayerInspector({ layer }: { layer: Layer }) {
     <div className="flex flex-col gap-5 p-4">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-3">
-          Inspector
+          {t("insp.title")}
         </span>
         <span className="rounded-sm border border-amber/40 bg-amber-dim px-1.5 py-0.5 font-mono text-[10px] text-amber">
           {layer.name}
@@ -62,7 +58,7 @@ function LayerInspector({ layer }: { layer: Layer }) {
       </div>
 
       {/* name */}
-      <Field label="NAME">
+      <Field label={t("insp.name")}>
         <Input
           value={layer.name}
           onChange={(e) => set({ name: e.target.value })}
@@ -72,7 +68,7 @@ function LayerInspector({ layer }: { layer: Layer }) {
 
       {/* visibility */}
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] text-text-3">visible</span>
+        <span className="font-mono text-[11px] text-text-3">{t("insp.visible")}</span>
         <Switch
           checked={layer.visible}
           onCheckedChange={(v) => set({ visible: v })}
@@ -83,7 +79,7 @@ function LayerInspector({ layer }: { layer: Layer }) {
       {/* parallax factors */}
       <div className="border-l-2 border-l-teal pl-3">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-3">
-          Parallax factors
+          {t("insp.factors")}
         </p>
         <FactorRow
           label="factorX"
@@ -114,9 +110,9 @@ function LayerInspector({ layer }: { layer: Layer }) {
 
       {/* transform */}
       <div>
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-3">Transform</p>
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-3">{t("insp.transform")}</p>
         <div className="flex items-center gap-2">
-          <span className="w-14 font-mono text-[11px] text-text-2">scale</span>
+          <span className="w-14 font-mono text-[11px] text-text-2">{t("insp.scale")}</span>
           <Slider
             min={0.1}
             max={4}
@@ -167,17 +163,17 @@ function LayerInspector({ layer }: { layer: Layer }) {
           className="mt-2 font-mono text-[11px]"
           onClick={() => set({ scale: 1, offsetX: 0, offsetY: 0 })}
         >
-          RESET TRANSFORM
+          {t("insp.resetTransform")}
         </Button>
       </div>
 
       {/* danger zone */}
       <div className="flex gap-2 border-t border-border pt-4">
         <Button variant="secondary" size="sm" className="flex-1" onClick={() => duplicateLayer(layer.id)}>
-          <Copy /> Duplicate
+          <Copy /> {t("insp.duplicate")}
         </Button>
         <Button variant="danger" size="sm" className="flex-1" onClick={onDelete}>
-          <Trash2 /> Delete
+          <Trash2 /> {t("insp.delete")}
         </Button>
       </div>
     </div>
@@ -195,6 +191,7 @@ function FactorRow({
   value: number;
   onChange: (v: number) => void;
 }) {
+  const t = useT();
   return (
     <div className="mb-3">
       <div className="flex items-center gap-2">
@@ -220,9 +217,9 @@ function FactorRow({
         />
       </div>
       <div className="mt-1 flex justify-between pl-14 pr-[4.5rem] font-mono text-[9px] text-text-3">
-        <span>0 locked</span>
+        <span>{t("insp.locked")}</span>
         <span>0.5</span>
-        <span>1 glued</span>
+        <span>{t("insp.glued")}</span>
       </div>
     </div>
   );
@@ -261,7 +258,9 @@ function OffsetInput({
 /* ----------------------------- nothing selected ----------------------------- */
 
 function SceneInspector() {
+  const t = useT();
   const { canvasSize, setCanvasSize, layers } = useSceneStore();
+  const TIPS = [t("insp.tip1"), t("insp.tip2"), t("insp.tip3"), t("insp.tip4")];
   const tip = TIPS[new Date().getMinutes() % TIPS.length];
   const storageBytes = layers.reduce((n, l) => n + (l.src.startsWith("data:") ? l.src.length : 0), 0);
   const pct = Math.min(100, Math.round((storageBytes / (4 * 1024 * 1024)) * 100));
@@ -269,10 +268,10 @@ function SceneInspector() {
   return (
     <div className="flex flex-col gap-5 p-4">
       <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-3">
-        Scene
+        {t("insp.scene")}
       </span>
 
-      <Field label="CANVAS SIZE">
+      <Field label={t("insp.canvasSize")}>
         <div className="grid grid-cols-3 gap-1.5">
           {[
             { w: 640, h: 360 },
@@ -298,13 +297,13 @@ function SceneInspector() {
       </Field>
 
       <div className="flex items-center justify-between font-mono text-[11px]">
-        <span className="text-text-3">layers</span>
+        <span className="text-text-3">{t("insp.layers")}</span>
         <span className="text-text-1">{layers.length}</span>
       </div>
 
       <div>
         <div className="mb-1 flex items-center justify-between font-mono text-[11px]">
-          <span className="text-text-3">storage</span>
+          <span className="text-text-3">{t("insp.storage")}</span>
           <span className={pct > 80 ? "text-amber" : "text-text-1"}>{fmtBytes(storageBytes)}</span>
         </div>
         <div className="h-1 w-full bg-bg-3">
@@ -316,7 +315,7 @@ function SceneInspector() {
       </div>
 
       <p className="font-mono text-[10px] leading-relaxed text-text-3">
-        deepest empty pixels render as checker
+        {t("insp.checkerNote")}
       </p>
 
       <div className="rounded border border-teal/30 border-l-2 border-l-teal bg-teal-dim p-3">

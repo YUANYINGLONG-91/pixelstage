@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Layer } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
+import { useT } from "@/i18n";
 import { toast } from "@/store/toastStore";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ export default function LayerPanel() {
   const addFiles = useSceneStore((s) => s.addFiles);
   const reorderLayer = useSceneStore((s) => s.reorderLayer);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
 
   // store: index 0 = farthest. panel shows front-most on top → reversed.
   const displayLayers = [...layers].reverse();
@@ -31,11 +33,8 @@ export default function LayerPanel() {
   const onFiles = async (files: File[]) => {
     if (!files.length) return;
     const { added, rejected } = await addFiles(files);
-    if (added) toast(`${added} layer${added > 1 ? "s" : ""} added`, { variant: "success" });
-    if (rejected)
-      toast(`${rejected} file${rejected > 1 ? "s" : ""} skipped (png/jpg ≤ 8MB, ≤ 4096px)`, {
-        variant: "danger",
-      });
+    if (added) toast(`${added} ${t("layers.added")}`, { variant: "success" });
+    if (rejected) toast(`${rejected} ${t("layers.skipped")}`, { variant: "danger" });
   };
 
   return (
@@ -43,7 +42,7 @@ export default function LayerPanel() {
       <div className="flex h-11 items-center justify-between border-b border-border px-3">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-3">
-            Layers
+            {t("layers.title")}
           </span>
           <span className="rounded-sm border border-border bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3">
             {layers.length}
@@ -58,10 +57,10 @@ export default function LayerPanel() {
               aria-label="Add layer"
             >
               <Plus className="!size-3.5" />
-              Add
+              {t("layers.add")}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Import PNG/JPG</TooltipContent>
+          <TooltipContent>{t("layers.importTip")}</TooltipContent>
         </Tooltip>
         <input
           ref={fileInputRef}
@@ -77,15 +76,15 @@ export default function LayerPanel() {
       </div>
 
       <div className="border-b border-border px-3 py-2 font-mono text-[10px] text-text-3">
-        drop images anywhere on the canvas
+        {t("layers.dropHint")}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {displayLayers.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
             <img src="/empty-state.svg" alt="" className="w-28 opacity-80" />
-            <p className="text-sm font-medium text-text-2">No layers yet</p>
-            <p className="font-mono text-[11px] text-text-3">add a background to begin</p>
+            <p className="text-sm font-medium text-text-2">{t("layers.empty")}</p>
+            <p className="font-mono text-[11px] text-text-3">{t("layers.emptyHint")}</p>
           </div>
         ) : (
           <Reorder.Group
@@ -105,6 +104,7 @@ export default function LayerPanel() {
 }
 
 function LayerRow({ layer }: { layer: Layer }) {
+  const t = useT();
   const { selectedId, selectLayer, updateLayer, removeLayer, insertLayer } = useSceneStore();
   const dragControls = useDragControls();
   const [renaming, setRenaming] = useState(false);
@@ -125,9 +125,9 @@ function LayerRow({ layer }: { layer: Layer }) {
   const onDelete = () => {
     const removed = removeLayer(layer.id);
     if (!removed) return;
-    toast("Layer deleted", {
+    toast(t("layers.deleted"), {
       variant: "danger",
-      actionLabel: "Undo",
+      actionLabel: t("layers.undo"),
       duration: 4000,
       onAction: () => insertLayer(removed.layer, removed.index),
     });
@@ -185,7 +185,7 @@ function LayerRow({ layer }: { layer: Layer }) {
               setDraft(layer.name);
               setRenaming(true);
             }}
-            title="Double-click to rename"
+            title={t("layers.renameHint")}
           >
             {layer.name}
           </p>

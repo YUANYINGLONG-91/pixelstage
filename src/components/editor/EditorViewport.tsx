@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import StageCanvas from "@/components/StageCanvas";
 import { useSceneStore } from "@/store/sceneStore";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 export default function EditorViewport({
@@ -27,6 +28,7 @@ export default function EditorViewport({
   const [stageW, setStageW] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [crosshairIdle, setCrosshairIdle] = useState(false);
+  const t = useT();
 
   // fit the stage into the available viewport box, preserving aspect ratio
   useEffect(() => {
@@ -48,8 +50,8 @@ export default function EditorViewport({
       setCrosshairIdle(false);
       return;
     }
-    const t = setTimeout(() => setCrosshairIdle(true), 2000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setCrosshairIdle(true), 2000);
+    return () => clearTimeout(timer);
   }, [dragging, camera]);
 
   const stageH = stageW / (canvasSize.width / canvasSize.height);
@@ -115,13 +117,13 @@ export default function EditorViewport({
                   aria-label="Toggle auto-sweep"
                   className="scale-75"
                 />
-                <span className="font-mono text-[10px] text-text-3">AUTO SWEEP</span>
+                <span className="font-mono text-[10px] text-text-3">{t("vp.autoSweep")}</span>
               </div>
               <button
                 onClick={resetCamera}
                 className="flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] text-text-3 transition-colors hover:text-amber"
               >
-                <Crosshair size={11} /> RESET CAM
+                <Crosshair size={11} /> {t("vp.resetCam")}
               </button>
             </div>
           </div>
@@ -132,11 +134,11 @@ export default function EditorViewport({
       {empty && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-bg-0/80">
           <img src="/empty-state.svg" alt="" className="w-32" />
-          <h2 className="text-lg font-semibold text-text-1">Drop your first layer</h2>
-          <p className="font-mono text-xs text-text-3">png / jpg · drag anywhere · or</p>
+          <h2 className="text-lg font-semibold text-text-1">{t("vp.dropFirst")}</h2>
+          <p className="font-mono text-xs text-text-3">{t("vp.dropHint")}</p>
           <div className="flex gap-3">
             <Button variant="secondary" size="sm" onClick={onBrowse}>
-              Browse files…
+              {t("vp.browse")}
             </Button>
             <Button
               variant="ghost"
@@ -144,7 +146,7 @@ export default function EditorViewport({
               className="text-amber"
               onClick={() => loadDemo("valley")}
             >
-              Load demo scene
+              {t("vp.loadDemo")}
             </Button>
           </div>
         </div>
@@ -154,7 +156,7 @@ export default function EditorViewport({
       {dragOver && (
         <div className="pointer-events-none absolute inset-3 flex flex-col items-center justify-center gap-4 rounded border-2 border-dashed border-amber bg-amber-dim">
           <img src="/empty-state.svg" alt="" className="w-28" />
-          <p className="font-pixel text-base tracking-wide text-amber">RELEASE TO ADD LAYERS</p>
+          <p className="font-pixel text-base tracking-wide text-amber">{t("vp.release")}</p>
         </div>
       )}
     </div>

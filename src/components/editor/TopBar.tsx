@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Wordmark } from "@/components/Navbar";
+import { LangToggle, Wordmark } from "@/components/Navbar";
+import { useT } from "@/i18n";
 import { useSceneStore } from "@/store/sceneStore";
 import { toast } from "@/store/toastStore";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ export default function TopBar({
   const [customH, setCustomH] = useState(540);
   const [confirmReset, setConfirmReset] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
 
   useEffect(() => {
     if (editingName) nameInputRef.current?.select();
@@ -83,7 +85,7 @@ export default function TopBar({
               setNameDraft(name);
               setEditingName(true);
             }}
-            title="Click to rename"
+            title={t("ed.renameHint")}
           >
             {name}
           </button>
@@ -97,10 +99,10 @@ export default function TopBar({
           />
           <span className="font-mono text-[11px] text-text-3">
             {savedAt
-              ? `saved ${savedAt.toTimeString().slice(0, 8)}`
+              ? `${t("ed.saved")} ${savedAt.toTimeString().slice(0, 8)}`
               : layers.length
-                ? "saving…"
-                : "local-first"}
+                ? t("ed.saving")
+                : t("ed.localFirst")}
           </span>
         </span>
       </div>
@@ -129,7 +131,7 @@ export default function TopBar({
             isCustom || customOpen ? "bg-bg-3 text-amber" : "text-text-3 hover:text-text-1"
           )}
         >
-          custom
+          {t("ed.custom")}
         </button>
         {customOpen && (
           <div className="absolute left-1/2 top-full z-30 mt-2 flex -translate-x-1/2 items-center gap-2 rounded border border-border bg-bg-2 p-3 shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
@@ -162,7 +164,7 @@ export default function TopBar({
                 setCustomOpen(false);
               }}
             >
-              Apply
+              {t("ed.apply")}
             </Button>
           </div>
         )}
@@ -176,7 +178,7 @@ export default function TopBar({
               <FolderOpen />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Open project…</TooltipContent>
+          <TooltipContent>{t("ed.openProject")}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -184,7 +186,7 @@ export default function TopBar({
               <FileJson />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Export scene.json</TooltipContent>
+          <TooltipContent>{t("ed.exportJson")}</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -197,8 +199,9 @@ export default function TopBar({
               <RotateCcw />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Reset scene</TooltipContent>
+          <TooltipContent>{t("ed.resetScene")}</TooltipContent>
         </Tooltip>
+        <LangToggle />
         <div className="mx-1 h-4 w-px bg-border" />
         <a
           href={GITHUB_URL}
@@ -219,19 +222,19 @@ export default function TopBar({
               <ArrowLeft size={16} />
             </Link>
           </TooltipTrigger>
-          <TooltipContent>Back to site</TooltipContent>
+          <TooltipContent>{t("ed.backToSite")}</TooltipContent>
         </Tooltip>
       </div>
 
       <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>RESET SCENE</DialogTitle>
-            <DialogDescription>Clear all layers? This cannot be undone.</DialogDescription>
+            <DialogTitle>{t("ed.resetTitle")}</DialogTitle>
+            <DialogDescription>{t("ed.resetConfirm")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="secondary" size="sm" onClick={() => setConfirmReset(false)}>
-              Cancel
+              {t("ed.cancel")}
             </Button>
             <Button
               variant="danger"
@@ -239,10 +242,10 @@ export default function TopBar({
               onClick={() => {
                 resetScene();
                 setConfirmReset(false);
-                toast("Scene cleared", { variant: "danger" });
+                toast(t("ed.sceneCleared"), { variant: "danger" });
               }}
             >
-              Clear all layers
+              {t("ed.clearAll")}
             </Button>
           </DialogFooter>
         </DialogContent>

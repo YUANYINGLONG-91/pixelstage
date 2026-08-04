@@ -13,68 +13,53 @@ import { FadeUp, SectionEyebrow } from "@/components/marketing";
 import { highlightJs, highlightJson } from "@/components/editor/ExportModal";
 import { RUNTIME_SNIPPET } from "@/core/scene";
 import { getCachedPlaceholderScene } from "@/core/placeholder";
+import { useT } from "@/i18n";
+import type { DictKey } from "@/i18n/dict";
 import { toast } from "@/store/toastStore";
 import { cn } from "@/lib/utils";
 
-const TOC = [
-  { id: "quick-start", label: "01 QUICK START" },
-  { id: "parallax-model", label: "02 THE PARALLAX MODEL" },
-  { id: "json-format", label: "03 SCENE.JSON FORMAT" },
-  { id: "runtime", label: "04 RUNTIME SNIPPET" },
-  { id: "engines", label: "05 ENGINE RECIPES" },
-  { id: "faq", label: "06 FAQ" },
+const FACTOR_ROWS: [string, DictKey, DictKey][] = [
+  ["0.00", "guide.model.r1b", "guide.model.r1u"],
+  ["0.05 – 0.20", "guide.model.r2b", "guide.model.r2u"],
+  ["0.30 – 0.55", "guide.model.r3b", "guide.model.r3u"],
+  ["0.70 – 0.90", "guide.model.r4b", "guide.model.r4u"],
+  ["1.00", "guide.model.r5b", "guide.model.r5u"],
 ];
 
-const FACTOR_TABLE = [
-  ["0.00", "Locked to the screen — never moves", "UI overlays, vignettes"],
-  ["0.05 – 0.20", "Barely drifts — feels infinitely far", "Sky, distant mountains"],
-  ["0.30 – 0.55", "The classic midground", "Hills, trees, buildings"],
-  ["0.70 – 0.90", "Close and fast", "Foreground grass, props"],
-  ["1.00", "Glued to the camera plane", "The ground the player walks on"],
+const SCHEMA_ROWS: [string, string, string, DictKey][] = [
+  ["version", "number", "1", "guide.schema.d1"],
+  ["canvas.width / height", "number", "—", "guide.schema.d2"],
+  ["camera.x / y", "number", "—", "guide.schema.d3"],
+  ["layers[]", "array", "[]", "guide.schema.d4"],
+  ["layer.name", "string", "—", "guide.schema.d5"],
+  ["layer.src", "string", "—", "guide.schema.d6"],
+  ["layer.factorX / factorY", "number", "0.5 / 0.2", "guide.schema.d7"],
+  ["layer.scale", "number", "1", "guide.schema.d8"],
+  ["layer.offsetX / offsetY", "number", "0", "guide.schema.d9"],
+  ["layer.visible", "boolean", "true", "guide.schema.d10"],
 ];
 
-const SCHEMA_TABLE: [string, string, string, string][] = [
-  ["version", "number", "1", "Schema version."],
-  ["canvas.width / height", "number", "—", "Stage size in pixels."],
-  ["camera.x / y", "number", "—", "Camera position at export time."],
-  ["layers[]", "array", "[]", "Back-to-front order — index 0 is farthest."],
-  ["layer.name", "string", "—", "Display name from the layer list."],
-  ["layer.src", "string", "—", "Asset filename, or base64 dataURL if embedded at export."],
-  ["layer.factorX / factorY", "number", "0.5 / 0.2", "Parallax factor per axis, 0.00 – 1.50."],
-  ["layer.scale", "number", "1", "Uniform draw scale, 0.10 – 4.00."],
-  ["layer.offsetX / offsetY", "number", "0", "Base position shift on the stage."],
-  ["layer.visible", "boolean", "true", "Skip rendering when false."],
-];
-
-const FAQ = [
-  [
-    "Is my art uploaded anywhere?",
-    "No. PixelStage is a static page with zero backend. Images live in your browser's memory and localStorage/IndexedDB; export travels as a file you download. Check the network tab — it's silent.",
-  ],
-  [
-    "Can I use it commercially?",
-    "Yes. MIT license — use the tool, the JSON, and the runtime snippet in any game, commercial or not. Attribution appreciated, never required.",
-  ],
-  [
-    "What engines does the export support?",
-    "Anything that can draw images and read JSON. The format is deliberately boring: order, src, factors, scale, offset.",
-  ],
-  [
-    "How do I choose good factors?",
-    "Start with sky 0.05, far 0.15, mid 0.4, front 0.8. Then drag the camera and trust your eyes — depth should feel like looking through a window, not a conveyor belt.",
-  ],
-  [
-    "Why not Tiled / LDtk / Aseprite?",
-    "Different jobs: Tiled and LDtk edit tilemaps, Aseprite edits sprites. None of them choreograph multi-layer parallax scenes with camera preview. PixelStage does exactly that one job.",
-  ],
-  [
-    "Big images? Storage limits?",
-    "Parameters live in localStorage (~5MB); image payloads live in IndexedDB (much larger). The editor warns before limits, and project-file export (with embedded base64) is the escape hatch for heavy scenes.",
-  ],
+const FAQ: [DictKey, DictKey][] = [
+  ["guide.faq1q", "guide.faq1a"],
+  ["guide.faq2q", "guide.faq2a"],
+  ["guide.faq3q", "guide.faq3a"],
+  ["guide.faq4q", "guide.faq4a"],
+  ["guide.faq5q", "guide.faq5a"],
+  ["guide.faq6q", "guide.faq6a"],
 ];
 
 export default function GuidePage() {
-  const [active, setActive] = useState(TOC[0].id);
+  const t = useT();
+  const [active, setActive] = useState("quick-start");
+
+  const TOC = [
+    { id: "quick-start", label: t("guide.toc1") },
+    { id: "parallax-model", label: t("guide.toc2") },
+    { id: "json-format", label: t("guide.toc3") },
+    { id: "runtime", label: t("guide.toc4") },
+    { id: "engines", label: t("guide.toc5") },
+    { id: "faq", label: t("guide.toc6") },
+  ];
 
   // scroll-spy
   useEffect(() => {
@@ -84,11 +69,12 @@ export default function GuidePage() {
       },
       { rootMargin: "-20% 0px -70% 0px" }
     );
-    TOC.forEach((t) => {
-      const el = document.getElementById(t.id);
+    TOC.forEach((x) => {
+      const el = document.getElementById(x.id);
       if (el) obs.observe(el);
     });
     return () => obs.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const demoJson = JSON.stringify(
@@ -114,8 +100,14 @@ export default function GuidePage() {
     a.download = "sunset-valley.json";
     a.click();
     URL.revokeObjectURL(url);
-    toast("Downloaded sunset-valley.json", { variant: "success" });
+    toast(`${t("export.downloaded")} sunset-valley.json`, { variant: "success" });
   };
+
+  const steps: { n: string; h: DictKey; b: DictKey }[] = [
+    { n: "01", h: "guide.step1h", b: "guide.step1b" },
+    { n: "02", h: "guide.step2h", b: "guide.step2b" },
+    { n: "03", h: "guide.step3h", b: "guide.step3b" },
+  ];
 
   return (
     <main className="mx-auto max-w-[1200px] px-4 pb-24 pt-28">
@@ -123,18 +115,18 @@ export default function GuidePage() {
         {/* sticky TOC */}
         <nav className="hidden lg:block">
           <div className="sticky top-24 flex flex-col gap-1">
-            {TOC.map((t) => (
+            {TOC.map((x) => (
               <a
-                key={t.id}
-                href={`#${t.id}`}
+                key={x.id}
+                href={`#${x.id}`}
                 className={cn(
                   "border-l-2 px-3 py-1.5 font-mono text-xs transition-colors",
-                  active === t.id
+                  active === x.id
                     ? "border-amber text-amber"
                     : "border-transparent text-text-3 hover:text-text-1"
                 )}
               >
-                {t.label}
+                {x.label}
               </a>
             ))}
           </div>
@@ -144,39 +136,20 @@ export default function GuidePage() {
           {/* 01 quick start */}
           <section id="quick-start" className="scroll-mt-24">
             <FadeUp>
-              <SectionEyebrow>Docs</SectionEyebrow>
+              <SectionEyebrow>{t("guide.eyebrow")}</SectionEyebrow>
               <h1 className="mt-4 text-4xl font-bold tracking-tight text-text-1">
-                Getting started with PixelStage
+                {t("guide.h1")}
               </h1>
-              <p className="mt-4 text-[17px] text-text-2">
-                From layered art to a running parallax scene in about five minutes. Everything below
-                is real — the JSON, the math, the snippet.
-              </p>
+              <p className="mt-4 text-[17px] text-text-2">{t("guide.lead")}</p>
             </FadeUp>
             <div className="mt-10 space-y-8">
-              {[
-                {
-                  n: "01",
-                  h: "Import your layers",
-                  b: "Open the editor and drag your PNG/JPG layers onto the canvas — background first, then midground, foreground. Or press Load demo scene to explore with the Sunset Valley set.",
-                },
-                {
-                  n: "02",
-                  h: "Tune the depth",
-                  b: "Select a layer and set factorX / factorY. Drag the camera (or hit Space for auto-sweep) and watch screen = base + offset − cam × factor do its thing.",
-                },
-                {
-                  n: "03",
-                  h: "Export and render",
-                  b: "Export scene.json, drop it next to your assets, and render it with the snippet in section 04. The pixels will match the editor exactly.",
-                },
-              ].map((s, i) => (
+              {steps.map((s, i) => (
                 <FadeUp key={s.n} delay={i * 0.1}>
                   <div className="flex gap-4">
                     <span className="font-pixel text-2xl text-amber">{s.n}</span>
                     <div>
-                      <h3 className="text-xl font-semibold text-text-1">{s.h}</h3>
-                      <p className="mt-2 leading-relaxed text-text-2">{s.b}</p>
+                      <h3 className="text-xl font-semibold text-text-1">{t(s.h)}</h3>
+                      <p className="mt-2 leading-relaxed text-text-2">{t(s.b)}</p>
                     </div>
                   </div>
                 </FadeUp>
@@ -184,7 +157,7 @@ export default function GuidePage() {
               <FadeUp delay={0.2}>
                 <Button variant="primary" size="sm" asChild>
                   <Link to="/editor">
-                    Open the editor <ArrowRight />
+                    {t("guide.openEditor")} <ArrowRight />
                   </Link>
                 </Button>
               </FadeUp>
@@ -195,12 +168,9 @@ export default function GuidePage() {
           <section id="parallax-model" className="scroll-mt-24 border-t border-border pt-16">
             <FadeUp>
               <h2 className="text-3xl font-semibold tracking-tight text-text-1">
-                One multiply is the whole engine.
+                {t("guide.model.h2")}
               </h2>
-              <p className="mt-4 leading-relaxed text-text-2">
-                Every layer sits on a shared stage. When the camera moves, each layer shifts in the
-                opposite direction, scaled by its factor:
-              </p>
+              <p className="mt-4 leading-relaxed text-text-2">{t("guide.model.body")}</p>
             </FadeUp>
             <FadeUp delay={0.1}>
               <div className="mt-6 rounded-md border border-border bg-bg-1 p-6 text-center font-mono text-[15px] text-teal md:text-lg">
@@ -212,20 +182,20 @@ export default function GuidePage() {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-border bg-bg-2 font-mono text-[11px] uppercase tracking-wider text-text-3">
-                      <th className="px-4 py-3">Factor</th>
-                      <th className="px-4 py-3">Behavior</th>
-                      <th className="px-4 py-3">Typical use</th>
+                      <th className="px-4 py-3">{t("guide.model.factor")}</th>
+                      <th className="px-4 py-3">{t("guide.model.behavior")}</th>
+                      <th className="px-4 py-3">{t("guide.model.use")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {FACTOR_TABLE.map(([f, b, u]) => (
+                    {FACTOR_ROWS.map(([f, b, u]) => (
                       <tr
                         key={f}
                         className="border-b border-border/50 transition-colors last:border-0 hover:bg-bg-3/50"
                       >
                         <td className="px-4 py-3 font-mono text-teal">{f}</td>
-                        <td className="px-4 py-3 text-text-2">{b}</td>
-                        <td className="px-4 py-3 text-text-3">{u}</td>
+                        <td className="px-4 py-3 text-text-2">{t(b)}</td>
+                        <td className="px-4 py-3 text-text-3">{t(u)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -239,8 +209,7 @@ export default function GuidePage() {
             </FadeUp>
             <FadeUp delay={0.25}>
               <div className="mt-6 rounded border border-teal/30 border-l-2 border-l-teal bg-teal-dim p-4 text-sm leading-relaxed text-text-2">
-                factorX and factorY are independent. Most pixel scenes keep factorY small
-                (0.02–0.2) so vertical movement feels subtle — or lock it to 0 entirely.
+                {t("guide.model.note")}
               </div>
             </FadeUp>
           </section>
@@ -249,34 +218,31 @@ export default function GuidePage() {
           <section id="json-format" className="scroll-mt-24 border-t border-border pt-16">
             <FadeUp>
               <h2 className="text-3xl font-semibold tracking-tight text-text-1">
-                The whole scene is one file.
+                {t("guide.schema.h2")}
               </h2>
-              <p className="mt-4 leading-relaxed text-text-2">
-                Export writes a single JSON document. Version 1 of the schema is frozen — your
-                scenes will keep rendering forever.
-              </p>
+              <p className="mt-4 leading-relaxed text-text-2">{t("guide.schema.body")}</p>
             </FadeUp>
             <FadeUp delay={0.1}>
               <div className="mt-6 overflow-x-auto rounded-md border border-border">
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-border bg-bg-2 font-mono text-[11px] uppercase tracking-wider text-text-3">
-                      <th className="px-4 py-3">Field</th>
-                      <th className="px-4 py-3">Type</th>
-                      <th className="px-4 py-3">Default</th>
-                      <th className="px-4 py-3">Description</th>
+                      <th className="px-4 py-3">{t("guide.schema.field")}</th>
+                      <th className="px-4 py-3">{t("guide.schema.type")}</th>
+                      <th className="px-4 py-3">{t("guide.schema.default")}</th>
+                      <th className="px-4 py-3">{t("guide.schema.desc")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {SCHEMA_TABLE.map(([f, t, d, desc]) => (
+                    {SCHEMA_ROWS.map(([f, ty, d, desc]) => (
                       <tr
                         key={f}
                         className="border-b border-border/50 transition-colors last:border-0 hover:bg-bg-3/50"
                       >
                         <td className="px-4 py-2.5 font-mono text-xs text-amber">{f}</td>
-                        <td className="px-4 py-2.5 font-mono text-xs text-teal">{t}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs text-teal">{ty}</td>
                         <td className="px-4 py-2.5 font-mono text-xs text-text-3">{d}</td>
-                        <td className="px-4 py-2.5 text-text-2">{desc}</td>
+                        <td className="px-4 py-2.5 text-text-2">{t(desc)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -294,12 +260,9 @@ export default function GuidePage() {
           <section id="runtime" className="scroll-mt-24 border-t border-border pt-16">
             <FadeUp>
               <h2 className="text-3xl font-semibold tracking-tight text-text-1">
-                Render it anywhere in ~20 lines.
+                {t("guide.runtime.h2")}
               </h2>
-              <p className="mt-4 leading-relaxed text-text-2">
-                No dependency, no build step. Plain Canvas 2D. Read every line — then paste it into
-                your game.
-              </p>
+              <p className="mt-4 leading-relaxed text-text-2">{t("guide.runtime.body")}</p>
             </FadeUp>
             <FadeUp delay={0.1}>
               <CodeBlock filename="runtime.js" className="mt-6" preClassName="max-h-[420px]">
@@ -310,27 +273,23 @@ export default function GuidePage() {
               <ul className="mt-5 space-y-2 text-[15px] text-text-2">
                 <li>
                   · <code className="font-mono text-[13px] text-teal">imageSmoothingEnabled = false</code>{" "}
-                  keeps pixels crisp at any scale.
+                  {t("guide.runtime.b1")}
                 </li>
-                <li>· The loop draws back-to-front — exactly the editor's layer list order.</li>
+                <li>· {t("guide.runtime.b2")}</li>
                 <li>
-                  · <code className="font-mono text-[13px] text-teal">camera</code> is yours: bind it
-                  to a player, a mouse, or a cutscene timeline.
+                  · <code className="font-mono text-[13px] text-teal">camera</code>{" "}
+                  {t("guide.runtime.b3")}
                 </li>
               </ul>
             </FadeUp>
             <FadeUp delay={0.2}>
               <div className="mt-6 rounded-md border border-amber/50 bg-bg-1 p-5">
                 <p className="text-sm leading-relaxed text-text-2">
-                  <strong className="text-amber">Want to verify it?</strong> Export the demo scene,
-                  serve the folder with any static server, and call{" "}
-                  <code className="font-mono text-xs text-teal">
-                    loadScene('./sunset-valley.json', canvas)
-                  </code>
-                  . Animate camera.x and compare against the editor — pixel for pixel.
+                  <strong className="text-amber">{t("guide.runtime.verify")}</strong>{" "}
+                  {t("guide.runtime.verifyBody")}
                 </p>
                 <Button variant="secondary" size="sm" className="mt-4" onClick={downloadDemo}>
-                  Download demo scene.json
+                  {t("guide.runtime.download")}
                 </Button>
               </div>
             </FadeUp>
@@ -340,7 +299,7 @@ export default function GuidePage() {
           <section id="engines" className="scroll-mt-24 border-t border-border pt-16">
             <FadeUp>
               <h2 className="text-3xl font-semibold tracking-tight text-text-1">
-                Using your engine?
+                {t("guide.engines.h2")}
               </h2>
             </FadeUp>
             <FadeUp delay={0.1}>
@@ -348,16 +307,7 @@ export default function GuidePage() {
                 <AccordionItem value="phaser">
                   <AccordionTrigger>Phaser 3</AccordionTrigger>
                   <AccordionContent>
-                    Load the JSON in <code className="font-mono text-xs text-teal">preload()</code>,
-                    then{" "}
-                    <code className="font-mono text-xs text-teal">this.add.image()</code> per layer
-                    with{" "}
-                    <code className="font-mono text-xs text-teal">
-                      setScrollFactor(factorX, factorY)
-                    </code>{" "}
-                    — Phaser's scrollFactor <em>is</em> the PixelStage factor, zero math required.
-                    Keep <code className="font-mono text-xs text-teal">pixelArt: true</code> in your
-                    game config.
+                    {t("guide.engines.phaser")}
                     <CodeBlock filename="phaser.js" className="mt-3" preClassName="text-[11px]">
                       {highlightJs(`const scene = this.cache.json.get('scene');
 scene.layers.forEach((l, i) => {
@@ -371,15 +321,7 @@ scene.layers.forEach((l, i) => {
                 <AccordionItem value="godot">
                   <AccordionTrigger>Godot 4</AccordionTrigger>
                   <AccordionContent>
-                    Use a <code className="font-mono text-xs text-teal">ParallaxBackground</code> +{" "}
-                    <code className="font-mono text-xs text-teal">ParallaxLayer</code> per layer;
-                    set{" "}
-                    <code className="font-mono text-xs text-teal">
-                      motion_scale = Vector2(1 − factorX, 1 − factorY)
-                    </code>{" "}
-                    (Godot's scale is inverse — one subtraction). Or draw manually in{" "}
-                    <code className="font-mono text-xs text-teal">_draw()</code> with the same
-                    formula.
+                    {t("guide.engines.godot")}
                     <CodeBlock filename="parallax_layer.gd" className="mt-3" preClassName="text-[11px]">
                       {highlightJs(`for l in scene.layers:
     var pl := ParallaxLayer.new()
@@ -392,10 +334,7 @@ scene.layers.forEach((l, i) => {
                 <AccordionItem value="web">
                   <AccordionTrigger>Electron / bare web</AccordionTrigger>
                   <AccordionContent>
-                    The snippet in section 04 is production-ready. Wrap it in a{" "}
-                    <code className="font-mono text-xs text-teal">requestAnimationFrame</code> loop,
-                    drive <code className="font-mono text-xs text-teal">camera</code> from input,
-                    and ship.
+                    {t("guide.engines.web")}
                     <CodeBlock filename="main.js" className="mt-3" preClassName="text-[11px]">
                       {highlightJs(`const render = await loadScene('./scene.json', canvas);
 (function loop() {
@@ -414,15 +353,15 @@ scene.layers.forEach((l, i) => {
           <section id="faq" className="scroll-mt-24 border-t border-border pt-16">
             <FadeUp>
               <h2 className="text-3xl font-semibold tracking-tight text-text-1">
-                Questions, answered.
+                {t("guide.faq.h2")}
               </h2>
             </FadeUp>
             <FadeUp delay={0.1}>
               <Accordion type="single" collapsible className="mt-6">
                 {FAQ.map(([q, a], i) => (
                   <AccordionItem key={q} value={`faq-${i}`}>
-                    <AccordionTrigger>{q}</AccordionTrigger>
-                    <AccordionContent>{a}</AccordionContent>
+                    <AccordionTrigger>{t(q)}</AccordionTrigger>
+                    <AccordionContent>{t(a)}</AccordionContent>
                   </AccordionItem>
                 ))}
               </Accordion>
@@ -432,14 +371,15 @@ scene.layers.forEach((l, i) => {
           {/* closing CTA */}
           <FadeUp className="border-t border-border pt-16 text-center">
             <p className="font-pixel text-xl text-text-1">
-              READY WHEN YOU ARE<span className="animate-caret-blink text-amber">▮</span>
+              {t("guide.cta")}
+              <span className="animate-caret-blink text-amber">▮</span>
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <Button variant="primary" asChild>
-                <Link to="/editor">Open the Editor</Link>
+                <Link to="/editor">{t("guide.ctaOpen")}</Link>
               </Button>
               <Button variant="ghost" asChild>
-                <Link to="/gallery">Browse example scenes</Link>
+                <Link to="/gallery">{t("guide.ctaGallery")}</Link>
               </Button>
             </div>
           </FadeUp>

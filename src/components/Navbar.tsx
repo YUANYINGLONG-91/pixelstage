@@ -1,15 +1,10 @@
-import { GITHUB_URL } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Github, Menu, X } from "lucide-react";
+import { Github, Languages, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLangStore, useT } from "@/i18n";
+import { GITHUB_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-
-const LINKS = [
-  { to: "/editor", label: "Editor" },
-  { to: "/gallery", label: "Gallery" },
-  { to: "/guide", label: "Guide" },
-];
 
 export function Wordmark({ className }: { className?: string }) {
   return (
@@ -20,10 +15,35 @@ export function Wordmark({ className }: { className?: string }) {
   );
 }
 
+export function LangToggle({ className }: { className?: string }) {
+  const { lang, setLang } = useLangStore();
+  const t = useT();
+  return (
+    <button
+      onClick={() => setLang(lang === "en" ? "zh" : "en")}
+      className={cn(
+        "flex h-8 items-center gap-1.5 rounded border border-border px-2.5 font-mono text-[11px] text-text-2 transition-colors hover:border-border-strong hover:text-amber",
+        className
+      )}
+      aria-label="Switch language / 切换语言"
+    >
+      <Languages size={13} />
+      {t("lang.switch")}
+    </button>
+  );
+}
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const t = useT();
+
+  const LINKS = [
+    { to: "/editor", label: t("nav.editor") },
+    { to: "/gallery", label: t("nav.gallery") },
+    { to: "/guide", label: t("nav.guide") },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -64,6 +84,7 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <LangToggle />
           <a
             href={GITHUB_URL}
             target="_blank"
@@ -74,7 +95,7 @@ export default function Navbar() {
             <Github size={16} />
           </a>
           <Button variant="primary" size="sm" onClick={() => navigate("/editor")}>
-            Launch Editor
+            {t("nav.launch")}
           </Button>
         </div>
 
@@ -100,16 +121,19 @@ export default function Navbar() {
                 {l.label}
               </NavLink>
             ))}
-            <Button
-              variant="primary"
-              className="mt-3"
-              onClick={() => {
-                setOpen(false);
-                navigate("/editor");
-              }}
-            >
-              Launch Editor
-            </Button>
+            <div className="mt-2 flex items-center gap-2">
+              <LangToggle />
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/editor");
+                }}
+              >
+                {t("nav.launch")}
+              </Button>
+            </div>
           </nav>
         </div>
       )}

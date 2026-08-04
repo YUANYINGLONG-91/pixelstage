@@ -10,6 +10,7 @@ import TopBar from "@/components/editor/TopBar";
 import { useAutosave } from "@/hooks/useAutosave";
 import { useSceneStore } from "@/store/sceneStore";
 import { toast } from "@/store/toastStore";
+import { useT } from "@/i18n";
 
 export default function EditorPage() {
   const [dragOver, setDragOver] = useState(false);
@@ -19,10 +20,11 @@ export default function EditorPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
   const { savedAt, restored } = useAutosave();
+  const t = useT();
 
   // one-time restore toast
   useEffect(() => {
-    if (restored) toast("Project restored from local save", { variant: "teal" });
+    if (restored) toast(t("toast.restored"), { variant: "teal" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restored]);
 
@@ -66,11 +68,8 @@ export default function EditorPage() {
   const importFiles = async (files: File[]) => {
     if (!files.length) return;
     const { added, rejected } = await useSceneStore.getState().addFiles(files);
-    if (added) toast(`${added} layer${added > 1 ? "s" : ""} added`, { variant: "success" });
-    if (rejected)
-      toast(`${rejected} file${rejected > 1 ? "s" : ""} skipped (png/jpg ≤ 8MB, ≤ 4096px)`, {
-        variant: "danger",
-      });
+    if (added) toast(`${added} ${t("layers.added")}`, { variant: "success" });
+    if (rejected) toast(`${rejected} ${t("layers.skipped")}`, { variant: "danger" });
   };
 
   // keyboard shortcuts (editor.md §8)
@@ -146,7 +145,7 @@ export default function EditorPage() {
     <div className="flex h-screen flex-col overflow-hidden">
       {/* small-viewport notice (editor is desktop-first) */}
       <div className="border-b border-amber/40 bg-amber-dim px-3 py-1.5 text-center font-mono text-[11px] text-amber lg:hidden">
-        PixelStage's editor is designed for desktop — layout may be cramped
+        {t("ed.desktopNotice")}
       </div>
 
       <TopBar

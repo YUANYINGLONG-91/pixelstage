@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RUNTIME_SNIPPET } from "@/core/scene";
 import type { SceneFile } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
+import { useT } from "@/i18n";
 import { toast } from "@/store/toastStore";
 
 export default function ExportModal({
@@ -24,6 +25,7 @@ export default function ExportModal({
   const { toJSON, name, layers } = useSceneStore();
   const [embed, setEmbed] = useState(true);
   const [copied, setCopied] = useState(false);
+  const t = useT();
 
   const scene: SceneFile = useMemo(() => {
     if (!open) return toJSON();
@@ -46,7 +48,7 @@ export default function ExportModal({
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
-    toast(`${label} copied to clipboard`, { variant: "success" });
+    toast(`${label} ${t("export.copied")}`, { variant: "success" });
   };
 
   const download = () => {
@@ -57,7 +59,7 @@ export default function ExportModal({
     a.download = `${slug(name)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast(`Downloaded ${slug(name)}.json`, { variant: "success" });
+    toast(`${t("export.downloaded")} ${slug(name)}.json`, { variant: "success" });
   };
 
   // project file: always fully self-contained (embedded base64) for moving between machines
@@ -70,16 +72,16 @@ export default function ExportModal({
     a.download = `${slug(name)}.pixelstage.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast(`Downloaded ${slug(name)}.pixelstage.json`, { variant: "success" });
+    toast(`${t("export.downloaded")} ${slug(name)}.pixelstage.json`, { variant: "success" });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[720px]">
         <DialogHeader>
-          <DialogTitle>EXPORT SCENE</DialogTitle>
+          <DialogTitle>{t("export.title")}</DialogTitle>
           <DialogDescription>
-            {slug(name)}.json · {scene.layers.length} layers · {sizeKB} KB
+            {slug(name)}.json · {scene.layers.length} {t("export.layers")} · {sizeKB} KB
           </DialogDescription>
         </DialogHeader>
 
@@ -102,16 +104,16 @@ export default function ExportModal({
                 onChange={(e) => setEmbed(e.target.checked)}
                 className="h-3.5 w-3.5 accent-amber"
               />
-              Embed images (base64)
+              {t("export.embed")}
               {!embed && (
-                <span className="text-amber">— assets travel alongside the JSON</span>
+                <span className="text-amber">{t("export.embedOff")}</span>
               )}
             </label>
           </TabsContent>
 
           <TabsContent value="runtime">
             <p className="mb-2 text-xs text-text-2">
-              Render this scene anywhere in ~20 lines of plain Canvas 2D — no dependencies.
+              {t("export.runtimeBlurb")}
             </p>
             <div className="max-h-[40vh] overflow-auto rounded-md border border-border bg-code-bg p-4">
               <pre className="font-mono text-xs leading-relaxed">
@@ -124,20 +126,20 @@ export default function ExportModal({
               className="mt-3"
               onClick={() => void copy(RUNTIME_SNIPPET, "runtime.js")}
             >
-              {copied ? <Check /> : <Copy />} Copy runtime
+              {copied ? <Check /> : <Copy />} {t("export.copyRuntime")}
             </Button>
           </TabsContent>
         </Tabs>
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
           <Button variant="ghost" size="sm" onClick={downloadProject}>
-            <Download /> Project (.pixelstage.json)
+            <Download /> {t("export.downloadProject")}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => void copy(json, "scene.json")}>
-            {copied ? <Check /> : <Copy />} Copy JSON
+            {copied ? <Check /> : <Copy />} {t("export.copyJson")}
           </Button>
           <Button variant="primary" size="sm" onClick={download}>
-            <Download /> Download .json
+            <Download /> {t("export.downloadJson")}
           </Button>
         </div>
       </DialogContent>
