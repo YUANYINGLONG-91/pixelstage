@@ -1,13 +1,15 @@
 import { Copy, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import NumberField from "@/components/ui/number-field";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { computeScreenPos } from "@/core/parallax";
+import { focalDistance } from "@/core/types";
 import type { Layer } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
 import { useT } from "@/i18n";
 import { toast } from "@/store/toastStore";
+import { cn } from "@/lib/utils";
 
 
 export default function Inspector() {
@@ -25,19 +27,20 @@ export default function Inspector() {
 
 function LayerInspector({ layer }: { layer: Layer }) {
   const t = useT();
-  const { camera, updateLayer, duplicateLayer, removeLayer, insertLayer } = useSceneStore();
-  const pos = computeScreenPos(layer, camera);
+  const { canvasSize, camera, updateLayer, duplicateLayer, removeLayer } = useSceneStore();
+  const D = focalDistance(canvasSize, camera.fov);
+  const parallax = D / (D + layer.depth);
 
-  const set = (patch: Partial<Layer>) => updateLayer(layer.id, patch);
+  const set = (patch: Partial<Layer>, coalesceKey?: string) =>
+    updateLayer(layer.id, patch, coalesceKey ? { coalesceKey } : undefined);
 
   const onDelete = () => {
-    const removed = removeLayer(layer.id);
-    if (!removed) return;
+    if (!removeLayer(layer.id)) return;
     toast(t("layers.deleted"), {
       variant: "danger",
       actionLabel: t("layers.undo"),
       duration: 4000,
-      onAction: () => insertLayer(removed.layer, removed.index),
+      onAction: () => useSceneStore.getState().undo(),
     });
   };
 
@@ -76,34 +79,78 @@ function LayerInspector({ layer }: { layer: Layer }) {
         />
       </div>
 
-      {/* parallax factors */}
+      {/* depth & light */}
       <div className="border-l-2 border-l-teal pl-3">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-3">
           {t("insp.factors")}
         </p>
-        <FactorRow
-          label="factorX"
-          color="amber"
-          value={layer.factorX}
-          onChange={(v) => set({ factorX: v })}
-        />
-        <FactorRow
-          label="factorY"
-          color="teal"
-          value={layer.factorY}
-          onChange={(v) => set({ factorY: v })}
-        />
+
+        {/* depth */}
+        <div className="mb-3">
+          <div className="flex items-center gap-2">
+            <span className="w-14 font-mono text-[11px] text-text-2">{t("term.depth")}</span>
+            <Slider
+              min={-400}
+              max={800}
+              step={10}
+              value={[layer.depth]}
+              onValueChange={([v]) => set({ depth: v }, `${layer.id}:depth`)}
+              trackColor="amber"
+              className="flex-1"
+            />
+            <NumberField
+              min={-400}
+              max={800}
+              step={10}
+              value={layer.depth}
+              onCommit={(v) => set({ depth: v }, `${layer.id}:depth`)}
+              ariaLabel="Depth"
+            />
+          </div>
+          <div className="mt-1 flex justify-between pl-14 pr-[4.5rem] font-mono text-[9px] text-text-3">
+            <span>−400</span>
+            <span>0</span>
+            <span>+800</span>
+          </div>
+        </div>
+
+        {/* orientation */}
+        <div className="mb-3 flex items-center justify-between">
+          <span className="font-mono text-[11px] text-text-3">{t("term.orientation")}</span>
+          <div className="flex items-center rounded-sm border border-border">
+            {(["vertical", "ground"] as const).map((o) => (
+              <button
+                key={o}
+                onClick={() => set({ orientation: o })}
+                className={cn(
+                  "px-2 py-1 font-mono text-[10px] transition-colors",
+                  layer.orientation === o ? "bg-bg-3 text-amber" : "text-text-3 hover:text-text-1"
+                )}
+                aria-label={`${t("term.orientation")}: ${t(o === "vertical" ? "term.vertical" : "term.ground")}`}
+              >
+                {t(o === "vertical" ? "term.vertical" : "term.ground")}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* lit */}
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[11px] text-text-3">
+            {layer.lit ? t("term.lit") : t("term.unlit")}
+          </span>
+          <Switch
+            checked={layer.lit}
+            onCheckedChange={(v) => set({ lit: v })}
+            aria-label="Toggle lit"
+          />
+        </div>
+
         {/* the product's thesis made visible: live formula readout */}
         <div className="mt-2 space-y-1 rounded border border-border bg-bg-1 p-2 font-mono text-[11px] leading-relaxed">
           <p className="text-text-2">
-            x = {fmt(layer.offsetX)} − {fmt(camera.x)} ×{" "}
-            <span className="text-amber">{layer.factorX.toFixed(2)}</span> →{" "}
-            <span className="text-teal">{fmt(pos.x)}px</span>
-          </p>
-          <p className="text-text-2">
-            y = {fmt(layer.offsetY)} − {fmt(camera.y)} ×{" "}
-            <span className="text-teal">{layer.factorY.toFixed(2)}</span> →{" "}
-            <span className="text-teal">{fmt(pos.y)}px</span>
+            depth <span className="text-amber">{fmt(layer.depth)}</span> → parallax ×
+            <span className="text-teal">{parallax.toFixed(2)}</span>
           </p>
         </div>
       </div>
@@ -118,18 +165,17 @@ function LayerInspector({ layer }: { layer: Layer }) {
             max={4}
             step={0.05}
             value={[layer.scale]}
-            onValueChange={([v]) => set({ scale: v })}
+            onValueChange={([v]) => set({ scale: v }, `${layer.id}:scale`)}
             className="flex-1"
           />
-          <Input
-            type="number"
+          <NumberField
             min={0.1}
             max={4}
             step={0.05}
+            precision={2}
             value={layer.scale}
-            onChange={(e) => set({ scale: clampNum(+e.target.value, 0.1, 4) })}
-            className="w-16 font-mono text-xs"
-            aria-label="Scale"
+            onCommit={(v) => set({ scale: v }, `${layer.id}:scale`)}
+            ariaLabel="Scale"
           />
         </div>
         <div className="mt-2 flex gap-1.5 pl-14">
@@ -148,12 +194,12 @@ function LayerInspector({ layer }: { layer: Layer }) {
           <OffsetInput
             label="offsetX"
             value={layer.offsetX}
-            onChange={(v) => set({ offsetX: v })}
+            onChange={(v) => set({ offsetX: v }, `${layer.id}:offsetX`)}
           />
           <OffsetInput
             label="offsetY"
             value={layer.offsetY}
-            onChange={(v) => set({ offsetY: v })}
+            onChange={(v) => set({ offsetY: v }, `${layer.id}:offsetY`)}
           />
         </div>
 
@@ -180,51 +226,6 @@ function LayerInspector({ layer }: { layer: Layer }) {
   );
 }
 
-function FactorRow({
-  label,
-  color,
-  value,
-  onChange,
-}: {
-  label: string;
-  color: "amber" | "teal";
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  const t = useT();
-  return (
-    <div className="mb-3">
-      <div className="flex items-center gap-2">
-        <span className="w-14 font-mono text-[11px] text-text-2">{label}</span>
-        <Slider
-          min={0}
-          max={1.5}
-          step={0.01}
-          value={[value]}
-          onValueChange={([v]) => onChange(v)}
-          trackColor={color}
-          className="flex-1"
-        />
-        <Input
-          type="number"
-          min={0}
-          max={1.5}
-          step={0.01}
-          value={value}
-          onChange={(e) => onChange(clampNum(+e.target.value, 0, 1.5))}
-          className="w-16 font-mono text-xs"
-          aria-label={label}
-        />
-      </div>
-      <div className="mt-1 flex justify-between pl-14 pr-[4.5rem] font-mono text-[9px] text-text-3">
-        <span>{t("insp.locked")}</span>
-        <span>0.5</span>
-        <span>{t("insp.glued")}</span>
-      </div>
-    </div>
-  );
-}
-
 function OffsetInput({
   label,
   value,
@@ -237,19 +238,14 @@ function OffsetInput({
   return (
     <label className="flex flex-col gap-1">
       <span className="font-mono text-[10px] text-text-3">{label}</span>
-      <Input
-        type="number"
+      <NumberField
         min={-4096}
         max={4096}
         step={1}
         value={value}
-        onChange={(e) => onChange(clampNum(Math.round(+e.target.value), -4096, 4096))}
-        onKeyDown={(e) => {
-          const step = e.shiftKey ? 10 : 1;
-          if (e.key === "ArrowUp") onChange(clampNum(value + step, -4096, 4096));
-          if (e.key === "ArrowDown") onChange(clampNum(value - step, -4096, 4096));
-        }}
-        className="font-mono text-xs"
+        onCommit={onChange}
+        className="w-full"
+        ariaLabel={label}
       />
     </label>
   );
@@ -259,7 +255,24 @@ function OffsetInput({
 
 function SceneInspector() {
   const t = useT();
-  const { canvasSize, setCanvasSize, layers } = useSceneStore();
+  const { canvasSize, setCanvasSize, layers, effects, setEffects } = useSceneStore();
+  // store's setEffects is a shallow merge — always send complete groups
+  const fx = {
+    dof: (p: Partial<typeof effects.dof>, k?: string) =>
+      setEffects({ dof: { ...effects.dof, ...p } }, k ? { coalesceKey: k } : undefined),
+    fog: (p: Partial<typeof effects.fog>, k?: string) =>
+      setEffects({ fog: { ...effects.fog, ...p } }, k ? { coalesceKey: k } : undefined),
+    ambient: (p: Partial<typeof effects.ambient>, k?: string) =>
+      setEffects({ ambient: { ...effects.ambient, ...p } }, k ? { coalesceKey: k } : undefined),
+    sun: (p: Partial<typeof effects.sun>, k?: string) =>
+      setEffects({ sun: { ...effects.sun, ...p } }, k ? { coalesceKey: k } : undefined),
+    bloom: (p: Partial<typeof effects.bloom>, k?: string) =>
+      setEffects({ bloom: { ...effects.bloom, ...p } }, k ? { coalesceKey: k } : undefined),
+    grade: (p: Partial<typeof effects.grade>, k?: string) =>
+      setEffects({ grade: { ...effects.grade, ...p } }, k ? { coalesceKey: k } : undefined),
+    particles: (p: Partial<typeof effects.particles>, k?: string) =>
+      setEffects({ particles: { ...effects.particles, ...p } }, k ? { coalesceKey: k } : undefined),
+  };
   const TIPS = [t("insp.tip1"), t("insp.tip2"), t("insp.tip3"), t("insp.tip4")];
   const tip = TIPS[new Date().getMinutes() % TIPS.length];
   const storageBytes = layers.reduce((n, l) => n + (l.src.startsWith("data:") ? l.src.length : 0), 0);
@@ -296,6 +309,220 @@ function SceneInspector() {
         </div>
       </Field>
 
+      {/* render effects */}
+      <div className="border-l-2 border-l-amber pl-3">
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-text-3">
+          {t("term.effects")}
+        </p>
+
+        {/* depth of field */}
+        <EffectToggle
+          label={t("term.dof")}
+          checked={effects.dof.enabled}
+          onChange={(v) => fx.dof({ enabled: v })}
+        />
+        {effects.dof.enabled && (
+          <>
+            <EffectSlider
+              label={t("term.focus")}
+              min={-400}
+              max={800}
+              step={10}
+              value={effects.dof.focus}
+              onChange={(v) => fx.dof({ focus: v }, "fx:dof.focus")}
+            />
+            <EffectSlider
+              label={t("term.aperture")}
+              min={0}
+              max={1}
+              step={0.05}
+              value={effects.dof.aperture}
+              onChange={(v) => fx.dof({ aperture: v }, "fx:dof.aperture")}
+            />
+          </>
+        )}
+
+        {/* fog */}
+        <EffectToggle
+          label={t("term.fog")}
+          checked={effects.fog.enabled}
+          onChange={(v) => fx.fog({ enabled: v })}
+        />
+        {effects.fog.enabled && (
+          <>
+            <EffectSlider
+              label={t("term.near")}
+              min={0}
+              max={4000}
+              step={20}
+              value={effects.fog.near}
+              onChange={(v) => fx.fog({ near: v }, "fx:fog.near")}
+            />
+            <EffectSlider
+              label={t("term.far")}
+              min={0}
+              max={4000}
+              step={20}
+              value={effects.fog.far}
+              onChange={(v) => fx.fog({ far: v }, "fx:fog.far")}
+            />
+            <ColorRow
+              label={t("term.fog")}
+              value={effects.fog.color}
+              onChange={(v) => fx.fog({ color: v }, "fx:fog.color")}
+            />
+          </>
+        )}
+
+        {/* ambient */}
+        <p className="mb-1 mt-3 font-mono text-[10px] uppercase tracking-wider text-text-3">
+          {t("term.ambient")}
+        </p>
+        <ColorRow
+          label={t("term.ambient")}
+          value={effects.ambient.color}
+          onChange={(v) => fx.ambient({ color: v }, "fx:ambient.color")}
+        />
+        <EffectSlider
+          label={t("term.intensity")}
+          min={0}
+          max={2}
+          step={0.05}
+          value={effects.ambient.intensity}
+          onChange={(v) => fx.ambient({ intensity: v }, "fx:ambient.intensity")}
+        />
+
+        {/* sun */}
+        <p className="mb-1 mt-3 font-mono text-[10px] uppercase tracking-wider text-text-3">
+          {t("term.sun")}
+        </p>
+        <ColorRow
+          label={t("term.sun")}
+          value={effects.sun.color}
+          onChange={(v) => fx.sun({ color: v }, "fx:sun.color")}
+        />
+        <EffectSlider
+          label={t("term.intensity")}
+          min={0}
+          max={3}
+          step={0.05}
+          value={effects.sun.intensity}
+          onChange={(v) => fx.sun({ intensity: v }, "fx:sun.intensity")}
+        />
+        <EffectSlider
+          label={t("term.azimuth")}
+          min={0}
+          max={360}
+          step={1}
+          value={effects.sun.azimuth}
+          onChange={(v) => fx.sun({ azimuth: v }, "fx:sun.azimuth")}
+        />
+        <EffectSlider
+          label={t("term.elevation")}
+          min={0}
+          max={90}
+          step={1}
+          value={effects.sun.elevation}
+          onChange={(v) => fx.sun({ elevation: v }, "fx:sun.elevation")}
+        />
+
+        {/* bloom */}
+        <EffectToggle
+          label={t("term.bloom")}
+          checked={effects.bloom.enabled}
+          onChange={(v) => fx.bloom({ enabled: v })}
+        />
+        {effects.bloom.enabled && (
+          <>
+            <EffectSlider
+              label={t("term.strength")}
+              min={0}
+              max={2}
+              step={0.05}
+              value={effects.bloom.strength}
+              onChange={(v) => fx.bloom({ strength: v }, "fx:bloom.strength")}
+            />
+            <EffectSlider
+              label={t("term.threshold")}
+              min={0}
+              max={1}
+              step={0.02}
+              value={effects.bloom.threshold}
+              onChange={(v) => fx.bloom({ threshold: v }, "fx:bloom.threshold")}
+            />
+          </>
+        )}
+
+        {/* color grade */}
+        <p className="mb-1 mt-3 font-mono text-[10px] uppercase tracking-wider text-text-3">
+          {t("term.grade")}
+        </p>
+        <EffectSlider
+          label={t("term.vignette")}
+          min={0}
+          max={1}
+          step={0.05}
+          value={effects.grade.vignette}
+          onChange={(v) => fx.grade({ vignette: v }, "fx:grade.vignette")}
+        />
+        <EffectSlider
+          label={t("term.saturation")}
+          min={0}
+          max={2}
+          step={0.05}
+          value={effects.grade.saturation}
+          onChange={(v) => fx.grade({ saturation: v }, "fx:grade.saturation")}
+        />
+        <EffectSlider
+          label={t("term.grain")}
+          min={0}
+          max={0.3}
+          step={0.01}
+          value={effects.grade.grain}
+          onChange={(v) => fx.grade({ grain: v }, "fx:grade.grain")}
+        />
+
+        {/* particles */}
+        <EffectToggle
+          label={t("term.particles")}
+          checked={effects.particles.enabled}
+          onChange={(v) => fx.particles({ enabled: v })}
+        />
+        {effects.particles.enabled && (
+          <>
+            <ColorRow
+              label={t("term.particles")}
+              value={effects.particles.color}
+              onChange={(v) => fx.particles({ color: v }, "fx:particles.color")}
+            />
+            <EffectSlider
+              label={t("term.count")}
+              min={0}
+              max={400}
+              step={10}
+              value={effects.particles.count}
+              onChange={(v) => fx.particles({ count: v }, "fx:particles.count")}
+            />
+            <EffectSlider
+              label={t("term.size")}
+              min={1}
+              max={8}
+              step={0.5}
+              value={effects.particles.size}
+              onChange={(v) => fx.particles({ size: v }, "fx:particles.size")}
+            />
+            <EffectSlider
+              label={t("term.speed")}
+              min={0}
+              max={3}
+              step={0.1}
+              value={effects.particles.speed}
+              onChange={(v) => fx.particles({ speed: v }, "fx:particles.speed")}
+            />
+          </>
+        )}
+      </div>
+
       <div className="flex items-center justify-between font-mono text-[11px]">
         <span className="text-text-3">{t("insp.layers")}</span>
         <span className="text-text-1">{layers.length}</span>
@@ -325,6 +552,86 @@ function SceneInspector() {
   );
 }
 
+function EffectToggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="mb-2 mt-3 flex items-center justify-between first:mt-0">
+      <span className="font-mono text-[11px] text-text-2">{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={`Toggle ${label}`} />
+    </div>
+  );
+}
+
+function EffectSlider({
+  label,
+  min,
+  max,
+  step,
+  value,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="mb-2 flex items-center gap-2">
+      <span className="w-14 font-mono text-[11px] text-text-2">{label}</span>
+      <Slider
+        min={min}
+        max={max}
+        step={step}
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
+        className="flex-1"
+      />
+      <NumberField
+        min={min}
+        max={max}
+        step={step}
+        precision={step < 1 ? 2 : 0}
+        value={value}
+        onCommit={onChange}
+        ariaLabel={label}
+      />
+    </div>
+  );
+}
+
+function ColorRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="mb-2 flex items-center gap-2">
+      <span className="w-14 font-mono text-[11px] text-text-2">{label}</span>
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-6 w-10 cursor-pointer rounded-sm border border-border bg-bg-1 p-0.5"
+        aria-label={`${label} color`}
+      />
+      <span className="font-mono text-[11px] text-text-3">{value.toUpperCase()}</span>
+    </div>
+  );
+}
+
 /* --------------------------------- helpers --------------------------------- */
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -338,11 +645,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
-}
-
-function clampNum(v: number, min: number, max: number) {
-  if (!Number.isFinite(v)) return min;
-  return Math.min(max, Math.max(min, v));
 }
 
 function fmtBytes(n: number): string {

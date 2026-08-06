@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RUNTIME_SNIPPET } from "@/core/scene";
+import { saveBlob } from "@/core/platform";
+import { buildSceneZip } from "@/core/zip";
+import { saveProjectAs } from "@/store/projectFile";
 import type { SceneFile } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
 import { useT } from "@/i18n";
@@ -31,10 +34,10 @@ export default function ExportModal({
     if (!open) return toJSON();
     const s = toJSON();
     if (!embed) {
-      // assets travel alongside the JSON — src becomes a filename
+      // preview mirrors what buildSceneZip writes into the zip
       s.layers = s.layers.map((l) => ({
         ...l,
-        src: l.src.startsWith("data:") ? `${slug(l.name)}.png` : l.src,
+        src: l.src.startsWith("data:") ? `assets/${slug(l.name)}.png` : l.src,
       }));
     }
     return s;
@@ -51,28 +54,30 @@ export default function ExportModal({
     toast(`${label} ${t("export.copied")}`, { variant: "success" });
   };
 
-  const download = () => {
+  const download = async () => {
+    if (!embed) {
+      // honest export: scene.json + every layer image in one zip
+      const { blob, skipped } = buildSceneZip(toJSON());
+      const filename = `${slug(name)}.zip`;
+      const saved = await saveBlob(blob, { defaultPath: filename });
+      if (saved) {
+        toast(
+          `${t("export.downloaded")} ${filename}${skipped.length ? ` (${skipped.length} external src kept)` : ""}`,
+          { variant: "success" }
+        );
+      }
+      return;
+    }
     const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slug(name)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast(`${t("export.downloaded")} ${slug(name)}.json`, { variant: "success" });
+    const filename = `${slug(name)}.json`;
+    const saved = await saveBlob(blob, { defaultPath: filename });
+    if (saved) toast(`${t("export.downloaded")} ${filename}`, { variant: "success" });
   };
 
   // project file: always fully self-contained (embedded base64) for moving between machines
-  const downloadProject = () => {
-    const project = toJSON();
-    const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slug(name)}.pixelstage.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast(`${t("export.downloaded")} ${slug(name)}.pixelstage.json`, { variant: "success" });
+  const downloadProject = async () => {
+    const saved = await saveProjectAs();
+    if (saved) toast(`${t("export.downloaded")} ${saved}`, { variant: "success" });
   };
 
   return (
@@ -88,7 +93,7 @@ export default function ExportModal({
         <Tabs defaultValue="json">
           <TabsList>
             <TabsTrigger value="json">SCENE.JSON</TabsTrigger>
-            <TabsTrigger value="runtime">RUNTIME.JS</TabsTrigger>
+            <TabsTrigger value="runtime">RUNTIME.HTML</TabsTrigger>
           </TabsList>
 
           <TabsContent value="json">
@@ -113,7 +118,8 @@ export default function ExportModal({
 
           <TabsContent value="runtime">
             <p className="mb-2 text-xs text-text-2">
-              {t("export.runtimeBlurb")}
+              {t("export.runtimeBlurb")}{" "}
+              <span className="font-mono text-[11px] text-text-3">runtime.html (three.js, CDN)</span>
             </p>
             <div className="max-h-[40vh] overflow-auto rounded-md border border-border bg-code-bg p-4">
               <pre className="font-mono text-xs leading-relaxed">
@@ -124,7 +130,7 @@ export default function ExportModal({
               variant="secondary"
               size="sm"
               className="mt-3"
-              onClick={() => void copy(RUNTIME_SNIPPET, "runtime.js")}
+              onClick={() => void copy(RUNTIME_SNIPPET, "runtime.html")}
             >
               {copied ? <Check /> : <Copy />} {t("export.copyRuntime")}
             </Button>

@@ -4,8 +4,8 @@
  * market stall, two heroes walking. Warm amber light, mauve shade.
  */
 
-import type { Layer, RenderEffects } from "../types";
-import { defaultEffects } from "../types";
+import type { Layer, RenderEffects } from "../../types";
+import { defaultEffects } from "../../types";
 import { HOT, Painter, hexToRgb, mix, ramp } from "../pixel";
 import { cobble, grassTuft, leafCluster, pineTree, trunk } from "../materials";
 import {

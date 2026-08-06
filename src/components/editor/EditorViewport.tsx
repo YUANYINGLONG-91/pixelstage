@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { Crosshair } from "lucide-react";
+import { Crosshair, Grid3X3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import StageCanvas from "@/components/StageCanvas";
+import StageCanvas3D from "@/components/StageCanvas3DLazy";
+import { PATH_PRESETS } from "@/core/cameraPaths";
+import { focalDistance } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
 import { useT } from "@/i18n";
+import type { DictKey } from "@/i18n/dict";
 import { cn } from "@/lib/utils";
+
+const PRESET_KEYS: Record<(typeof PATH_PRESETS)[number], DictKey> = {
+  sweep: "term.sweep",
+  orbit: "term.orbit",
+  dolly: "term.dolly",
+};
 
 export default function EditorViewport({
   dragOver,
@@ -18,9 +27,12 @@ export default function EditorViewport({
     canvasSize,
     layers,
     camera,
+    effects,
     setCamera,
     playing,
     setPlaying,
+    pathPreset,
+    setPathPreset,
     resetCamera,
     loadDemo,
   } = useSceneStore();
@@ -28,6 +40,7 @@ export default function EditorViewport({
   const [stageW, setStageW] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [crosshairIdle, setCrosshairIdle] = useState(false);
+  const [gridVisible, setGridVisible] = useState(false);
   const t = useT();
 
   // fit the stage into the available viewport box, preserving aspect ratio
@@ -56,6 +69,8 @@ export default function EditorViewport({
 
   const stageH = stageW / (canvasSize.width / canvasSize.height);
   const empty = layers.length === 0;
+  const distance = Math.round(camera.position.z - camera.target.z);
+  const zoomPct = Math.round((focalDistance(canvasSize, camera.fov) / Math.max(1, distance)) * 100);
 
   return (
     <div ref={boxRef} className="relative min-w-0 flex-1 overflow-hidden bg-bg-0">
@@ -75,14 +90,17 @@ export default function EditorViewport({
             <CornerTicks />
             <div className="checker absolute inset-0" />
             <div className="absolute inset-0">
-              <StageCanvas
+              <StageCanvas3D
                 sceneSize={canvasSize}
                 layers={layers}
                 camera={camera}
-                onCameraChange={(c) => setCamera(c.x, c.y)}
+                effects={effects}
+                onCameraChange={(c, opts) => setCamera(c, opts)}
                 playing={playing && !empty}
+                editorMode
+                pathPreset={pathPreset}
+                grid={{ visible: gridVisible, step: 40 }}
                 onDraggingChange={setDragging}
-                sweepOptions={{ rangeX: canvasSize.width * 0.25, period: 10 }}
               />
             </div>
             {/* decorative scanlines, off while dragging */}
@@ -104,21 +122,51 @@ export default function EditorViewport({
 
             {/* HUD: camera readout */}
             <div className="absolute left-2 top-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1 font-mono text-[11px] text-text-3">
-              cam.x <span className="text-teal">{pad4(camera.x)}</span> · cam.y{" "}
-              <span className="text-teal">{pad4(camera.y)}</span>
+              tgt.x <span className="text-teal">{pad4(camera.target.x)}</span> · tgt.y{" "}
+              <span className="text-teal">{pad4(camera.target.y)}</span> · dist{" "}
+              <span className="text-teal">{pad4(distance)}</span> · fov{" "}
+              <span className="text-teal">{Math.round(camera.fov)}°</span> · {t("term.zoom")}{" "}
+              <span className="text-teal">{zoomPct}%</span>
             </div>
 
-            {/* HUD: sweep + reset */}
+            {/* HUD: path preset + play + grid + reset */}
             <div className="absolute bottom-2 right-2 flex items-center gap-2">
               <div className="flex items-center gap-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1">
                 <Switch
                   checked={playing}
                   onCheckedChange={setPlaying}
-                  aria-label="Toggle auto-sweep"
+                  aria-label="Toggle camera path playback"
                   className="scale-75"
                 />
-                <span className="font-mono text-[10px] text-text-3">{t("vp.autoSweep")}</span>
+                <div className="flex items-center rounded-sm border border-border">
+                  {PATH_PRESETS.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => {
+                        setPathPreset(p);
+                        setPlaying(true);
+                      }}
+                      className={cn(
+                        "px-1.5 py-0.5 font-mono text-[10px] transition-colors",
+                        pathPreset === p ? "bg-bg-3 text-amber" : "text-text-3 hover:text-text-1"
+                      )}
+                      aria-label={`${t("term.preset")}: ${t(PRESET_KEYS[p])}`}
+                    >
+                      {t(PRESET_KEYS[p])}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <button
+                onClick={() => setGridVisible((v) => !v)}
+                className={cn(
+                  "flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] transition-colors",
+                  gridVisible ? "text-amber" : "text-text-3 hover:text-amber"
+                )}
+                aria-label="Toggle grid"
+              >
+                <Grid3X3 size={11} /> {t("vp.grid")}
+              </button>
               <button
                 onClick={resetCamera}
                 className="flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] text-text-3 transition-colors hover:text-amber"
@@ -144,7 +192,7 @@ export default function EditorViewport({
               variant="ghost"
               size="sm"
               className="text-amber"
-              onClick={() => loadDemo("valley")}
+              onClick={() => loadDemo("village")}
             >
               {t("vp.loadDemo")}
             </Button>

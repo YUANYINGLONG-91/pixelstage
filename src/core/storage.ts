@@ -1,26 +1,38 @@
 import { del, get, keys, set } from "idb-keyval";
-import type { Layer, SceneFile } from "./types";
+import { migrateScene } from "./scene";
+import type { SceneFile } from "./types";
 
 /**
  * Two-tier persistence (PRD §3-F5):
- *   params (layer order / factors / offsets / camera) → localStorage
- *   image payloads (dataURLs)                        → IndexedDB (5MB localStorage cap dodge)
+ *   params (layer order / depths / offsets / camera / effects) → localStorage
+ *   image payloads (dataURLs)                                 → IndexedDB (5MB localStorage cap dodge)
+ *
+ * Schema v2 (HD-2D). A legacy v1 save (`pixelstage.project.v1`) is migrated
+ * transparently on first load and re-saved under the v2 key.
  */
 
-export const PROJECT_KEY = "pixelstage.project.v1";
+export const PROJECT_KEY = "pixelstage.project.v2";
+const LEGACY_PROJECT_KEY = "pixelstage.project.v1";
 const IMG_PREFIX = "pixelstage.img:";
 
-interface StoredLayer extends Omit<Layer, "src"> {
+interface StoredLayer {
+  id: string;
   /** `idb:<layerId>` for dataURL images, or an asset path for bundled art */
   src: string;
+  [k: string]: unknown;
 }
 
 interface StoredProject {
-  name: string;
-  canvasSize: { width: number; height: number };
-  camera: { x: number; y: number };
+  version?: number;
+  name?: string;
+  /** v2 shape */
+  canvas?: { width: number; height: number };
+  /** legacy v1 shape */
+  canvasSize?: { width: number; height: number };
+  camera?: unknown;
+  effects?: unknown;
   layers: StoredLayer[];
-  savedAt: string;
+  savedAt?: string;
 }
 
 export async function saveProject(scene: SceneFile): Promise<void> {
@@ -47,9 +59,11 @@ export async function saveProject(scene: SceneFile): Promise<void> {
 
   // params → localStorage
   const project: StoredProject = {
+    version: scene.version,
     name: scene.name,
-    canvasSize: scene.canvas,
+    canvas: scene.canvas,
     camera: scene.camera,
+    effects: scene.effects,
     layers,
     savedAt: new Date().toISOString(),
   };
@@ -58,12 +72,18 @@ export async function saveProject(scene: SceneFile): Promise<void> {
 
 /** Returns null when no local save exists. Layers with missing images keep src="" (magenta placeholder). */
 export async function loadProject(): Promise<SceneFile | null> {
-  const raw = localStorage.getItem(PROJECT_KEY);
+  let raw = localStorage.getItem(PROJECT_KEY);
+  let legacy = false;
+  if (!raw) {
+    raw = localStorage.getItem(LEGACY_PROJECT_KEY);
+    legacy = raw !== null;
+  }
   if (!raw) return null;
+
   const project = JSON.parse(raw) as StoredProject;
-  const layers: Layer[] = await Promise.all(
+  const layers = await Promise.all(
     project.layers.map(async (l) => {
-      if (l.src.startsWith("idb:")) {
+      if (typeof l.src === "string" && l.src.startsWith("idb:")) {
         const id = l.src.slice(4);
         const dataUrl = await get<string>(IMG_PREFIX + id);
         return { ...l, src: dataUrl ?? "" };
@@ -71,15 +91,26 @@ export async function loadProject(): Promise<SceneFile | null> {
       return { ...l };
     })
   );
-  return {
-    version: 1,
-    name: project.name,
-    canvas: project.canvasSize,
-    camera: project.camera,
+
+  // migrateScene handles both v1 ({x,y} camera, factorX/Y layers) and v2 input
+  const migrated = migrateScene({
+    ...project,
+    version: project.version ?? 1,
+    canvas: project.canvas ?? project.canvasSize,
     layers,
-  };
+  });
+
+  if (legacy) {
+    // one-time upgrade: re-save as v2, drop the v1 key
+    localStorage.removeItem(LEGACY_PROJECT_KEY);
+    await saveProject(migrated);
+  }
+  return migrated;
 }
 
 export function hasLocalProject(): boolean {
-  return localStorage.getItem(PROJECT_KEY) !== null;
+  return (
+    localStorage.getItem(PROJECT_KEY) !== null ||
+    localStorage.getItem(LEGACY_PROJECT_KEY) !== null
+  );
 }

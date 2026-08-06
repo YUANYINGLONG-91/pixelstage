@@ -105,7 +105,7 @@ export default function LayerPanel() {
 
 function LayerRow({ layer }: { layer: Layer }) {
   const t = useT();
-  const { selectedId, selectLayer, updateLayer, removeLayer, insertLayer } = useSceneStore();
+  const { selectedId, selectLayer, updateLayer, removeLayer } = useSceneStore();
   const dragControls = useDragControls();
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(layer.name);
@@ -123,13 +123,12 @@ function LayerRow({ layer }: { layer: Layer }) {
   };
 
   const onDelete = () => {
-    const removed = removeLayer(layer.id);
-    if (!removed) return;
+    if (!removeLayer(layer.id)) return;
     toast(t("layers.deleted"), {
       variant: "danger",
       actionLabel: t("layers.undo"),
       duration: 4000,
-      onAction: () => insertLayer(removed.layer, removed.index),
+      onAction: () => useSceneStore.getState().undo(),
     });
   };
 
@@ -191,7 +190,7 @@ function LayerRow({ layer }: { layer: Layer }) {
           </p>
         )}
         <p className="font-mono text-[10px] text-text-3">
-          fx {layer.factorX.toFixed(2)} · fy {layer.factorY.toFixed(2)}
+          z <span className="text-teal">{layer.depth}</span>
         </p>
       </div>
 

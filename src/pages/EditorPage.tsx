@@ -8,6 +8,9 @@ import OpenProjectModal from "@/components/editor/OpenProjectModal";
 import ShortcutsModal from "@/components/editor/ShortcutsModal";
 import StatusBar from "@/components/editor/StatusBar";
 import TopBar from "@/components/editor/TopBar";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { onOpenFile } from "@/core/platform";
+import { loadProjectData, saveProject, saveProjectAs } from "@/store/projectFile";
 import { useAutosave } from "@/hooks/useAutosave";
 import { useSceneStore } from "@/store/sceneStore";
 import { toast } from "@/store/toastStore";
@@ -74,6 +77,19 @@ export default function EditorPage() {
     if (rejected) toast(`${rejected} ${t("layers.skipped")}`, { variant: "danger" });
   };
 
+  // OS file-open (double-clicked .pixelstage.json / second instance)
+  useEffect(() => {
+    return onOpenFile(({ path, data }) => {
+      try {
+        loadProjectData(data, path);
+        toast(t("open.loaded"), { variant: "success" });
+      } catch {
+        toast(t("open.invalid"), { variant: "danger" });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // keyboard shortcuts (editor.md §8)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -82,6 +98,14 @@ export default function EditorPage() {
         target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
       const s = useSceneStore.getState();
 
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        const save = e.shiftKey ? saveProjectAs : saveProject;
+        void save().then((p) => {
+          if (p) toast(`${t("ed.saved")} · ${p}`, { variant: "success" });
+        });
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
         e.preventDefault();
         setExportOpen(true);
@@ -98,6 +122,18 @@ export default function EditorPage() {
         return;
       }
       if (typing) return;
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) s.redo();
+        else s.undo();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        s.redo();
+        return;
+      }
 
       switch (e.key) {
         case " ":
@@ -161,7 +197,9 @@ export default function EditorPage() {
         <div className="hidden md:flex">
           <LayerPanel />
         </div>
-        <EditorViewport dragOver={dragOver} onBrowse={() => fileInputRef.current?.click()} />
+        <ErrorBoundary compact onReset={() => window.location.reload()}>
+          <EditorViewport dragOver={dragOver} onBrowse={() => fileInputRef.current?.click()} />
+        </ErrorBoundary>
         <Onboarding open={onboarding.open} onClose={onboarding.close} />
         <div className="hidden md:flex">
           <Inspector />

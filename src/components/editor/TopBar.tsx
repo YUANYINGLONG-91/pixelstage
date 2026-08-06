@@ -1,7 +1,7 @@
 import { GITHUB_URL } from "@/lib/constants";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, FileJson, FolderOpen, Github, GraduationCap, RotateCcw } from "lucide-react";
+import { ArrowLeft, FileJson, FolderOpen, Github, GraduationCap, RotateCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,11 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import NumberField from "@/components/ui/number-field";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LangToggle, Wordmark } from "@/components/Navbar";
 import { useT } from "@/i18n";
 import { useSceneStore } from "@/store/sceneStore";
+import { saveProject } from "@/store/projectFile";
 import { toast } from "@/store/toastStore";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,8 @@ export default function TopBar({
   onOpenProject: () => void;
   onOpenTutorial: () => void;
 }) {
-  const { name, setName, canvasSize, setCanvasSize, resetScene, layers } = useSceneStore();
+  const { name, setName, canvasSize, setCanvasSize, resetScene, layers, dirty, filePath } =
+    useSceneStore();
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(name);
   const [customOpen, setCustomOpen] = useState(false);
@@ -87,9 +89,10 @@ export default function TopBar({
               setNameDraft(name);
               setEditingName(true);
             }}
-            title={t("ed.renameHint")}
+            title={filePath ?? t("ed.renameHint")}
           >
             {name}
+            {dirty && <span className="text-amber"> ●</span>}
           </button>
         )}
         <span className="hidden items-center gap-1.5 sm:flex" aria-live="polite">
@@ -137,24 +140,22 @@ export default function TopBar({
         </button>
         {customOpen && (
           <div className="absolute left-1/2 top-full z-30 mt-2 flex -translate-x-1/2 items-center gap-2 rounded border border-border bg-bg-2 p-3 shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
-            <Input
-              type="number"
+            <NumberField
               min={160}
               max={4096}
               value={customW}
-              onChange={(e) => setCustomW(+e.target.value)}
-              className="w-20 font-mono"
-              aria-label="Width"
+              onCommit={setCustomW}
+              className="w-20"
+              ariaLabel="Width"
             />
             <span className="font-mono text-xs text-text-3">×</span>
-            <Input
-              type="number"
+            <NumberField
               min={160}
               max={4096}
               value={customH}
-              onChange={(e) => setCustomH(+e.target.value)}
-              className="w-20 font-mono"
-              aria-label="Height"
+              onCommit={setCustomH}
+              className="w-20"
+              ariaLabel="Height"
             />
             <Button
               size="xs"
@@ -174,6 +175,19 @@ export default function TopBar({
 
       {/* right: actions */}
       <div className="flex items-center gap-1.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => void saveProject()}
+              aria-label="Save project"
+            >
+              <Save />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t("ed.save")}</TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="outline" size="icon" onClick={onOpenProject} aria-label="Open project">

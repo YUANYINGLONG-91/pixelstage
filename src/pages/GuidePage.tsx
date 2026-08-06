@@ -18,24 +18,26 @@ import type { DictKey } from "@/i18n/dict";
 import { toast } from "@/store/toastStore";
 import { cn } from "@/lib/utils";
 
-const FACTOR_ROWS: [string, DictKey, DictKey][] = [
-  ["0.00", "guide.model.r1b", "guide.model.r1u"],
-  ["0.05 – 0.20", "guide.model.r2b", "guide.model.r2u"],
-  ["0.30 – 0.55", "guide.model.r3b", "guide.model.r3u"],
-  ["0.70 – 0.90", "guide.model.r4b", "guide.model.r4u"],
-  ["1.00", "guide.model.r5b", "guide.model.r5u"],
+const DEPTH_ROWS: [string, DictKey, DictKey][] = [
+  ["−400 – −100", "guide.model.r1b", "guide.model.r1u"],
+  ["0", "guide.model.r2b", "guide.model.r2u"],
+  ["+100 – +300", "guide.model.r3b", "guide.model.r3u"],
+  ["+400 – +800", "guide.model.r4b", "guide.model.r4u"],
 ];
 
 const SCHEMA_ROWS: [string, string, string, DictKey][] = [
-  ["version", "number", "1", "guide.schema.d1"],
+  ["version", "number", "2", "guide.schema.d1"],
   ["canvas.width / height", "number", "—", "guide.schema.d2"],
-  ["camera.x / y", "number", "—", "guide.schema.d3"],
+  ["camera.position / target / fov", "vec3 / vec3 / number", "—", "guide.schema.d3"],
+  ["effects", "object", "—", "guide.schema.d13"],
   ["layers[]", "array", "[]", "guide.schema.d4"],
   ["layer.name", "string", "—", "guide.schema.d5"],
   ["layer.src", "string", "—", "guide.schema.d6"],
-  ["layer.factorX / factorY", "number", "0.5 / 0.2", "guide.schema.d7"],
+  ["layer.depth", "number", "0", "guide.schema.d7"],
   ["layer.scale", "number", "1", "guide.schema.d8"],
   ["layer.offsetX / offsetY", "number", "0", "guide.schema.d9"],
+  ["layer.orientation", "string", "\"vertical\"", "guide.schema.d11"],
+  ["layer.lit", "boolean", "true", "guide.schema.d12"],
   ["layer.visible", "boolean", "true", "guide.schema.d10"],
 ];
 
@@ -79,11 +81,8 @@ export default function GuidePage() {
 
   const demoJson = JSON.stringify(
     {
-      version: 1,
-      name: "Sunset Valley",
-      canvas: { width: 960, height: 540 },
-      camera: { x: 480, y: 270 },
-      layers: getCachedPlaceholderScene("valley").layers.map((l) => ({
+      ...getCachedPlaceholderScene("village"),
+      layers: getCachedPlaceholderScene("village").layers.map((l) => ({
         ...l,
         src: `${l.name.replace(/\s+/g, "-")}.png`,
       })),
@@ -97,10 +96,10 @@ export default function GuidePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "sunset-valley.json";
+    a.download = "goldenhollow-village.json";
     a.click();
     URL.revokeObjectURL(url);
-    toast(`${t("export.downloaded")} sunset-valley.json`, { variant: "success" });
+    toast(`${t("export.downloaded")} goldenhollow-village.json`, { variant: "success" });
   };
 
   const steps: { n: string; h: DictKey; b: DictKey }[] = [
@@ -174,7 +173,7 @@ export default function GuidePage() {
             </FadeUp>
             <FadeUp delay={0.1}>
               <div className="mt-6 rounded-md border border-border bg-bg-1 p-6 text-center font-mono text-[15px] text-teal md:text-lg">
-                screenPos = layerBase + layerOffset − cameraPos × layerFactor
+                parallax ×= D / (D + depth) · D = ½ canvasHeight / tan(fov / 2)
               </div>
             </FadeUp>
             <FadeUp delay={0.15}>
@@ -188,7 +187,7 @@ export default function GuidePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {FACTOR_ROWS.map(([f, b, u]) => (
+                    {DEPTH_ROWS.map(([f, b, u]) => (
                       <tr
                         key={f}
                         className="border-b border-border/50 transition-colors last:border-0 hover:bg-bg-3/50"
@@ -204,7 +203,7 @@ export default function GuidePage() {
             </FadeUp>
             <FadeUp delay={0.2}>
               <div className="mt-6 rounded-md border border-border bg-bg-1 p-4">
-                <img src="/factor-diagram.svg" alt="Parallax factor diagram" className="w-full" />
+                <img src="/factor-diagram.svg" alt="Layer depth diagram" className="w-full" />
               </div>
             </FadeUp>
             <FadeUp delay={0.25}>
@@ -250,7 +249,7 @@ export default function GuidePage() {
               </div>
             </FadeUp>
             <FadeUp delay={0.15}>
-              <CodeBlock filename="sunset-valley.json" className="mt-6" preClassName="max-h-[320px]">
+              <CodeBlock filename="goldenhollow-village.json" className="mt-6" preClassName="max-h-[320px]">
                 {highlightJson(demoJson)}
               </CodeBlock>
             </FadeUp>
@@ -265,14 +264,14 @@ export default function GuidePage() {
               <p className="mt-4 leading-relaxed text-text-2">{t("guide.runtime.body")}</p>
             </FadeUp>
             <FadeUp delay={0.1}>
-              <CodeBlock filename="runtime.js" className="mt-6" preClassName="max-h-[420px]">
+              <CodeBlock filename="runtime.html" className="mt-6" preClassName="max-h-[420px]">
                 {highlightJs(RUNTIME_SNIPPET)}
               </CodeBlock>
             </FadeUp>
             <FadeUp delay={0.15}>
               <ul className="mt-5 space-y-2 text-[15px] text-text-2">
                 <li>
-                  · <code className="font-mono text-[13px] text-teal">imageSmoothingEnabled = false</code>{" "}
+                  · <code className="font-mono text-[13px] text-teal">THREE.NearestFilter</code>{" "}
                   {t("guide.runtime.b1")}
                 </li>
                 <li>· {t("guide.runtime.b2")}</li>
@@ -310,10 +309,12 @@ export default function GuidePage() {
                     {t("guide.engines.phaser")}
                     <CodeBlock filename="phaser.js" className="mt-3" preClassName="text-[11px]">
                       {highlightJs(`const scene = this.cache.json.get('scene');
-scene.layers.forEach((l, i) => {
+const D = scene.canvas.height / 2 / Math.tan((scene.camera.fov * Math.PI) / 360);
+scene.layers.forEach((l) => {
+  const f = 1 - l.depth / D;   // depth → classic scroll factor
   this.add.image(l.offsetX, l.offsetY, l.name)
     .setOrigin(0).setScale(l.scale)
-    .setScrollFactor(l.factorX, l.factorY);
+    .setScrollFactor(f);
 });`)}
                     </CodeBlock>
                   </AccordionContent>
@@ -323,9 +324,11 @@ scene.layers.forEach((l, i) => {
                   <AccordionContent>
                     {t("guide.engines.godot")}
                     <CodeBlock filename="parallax_layer.gd" className="mt-3" preClassName="text-[11px]">
-                      {highlightJs(`for l in scene.layers:
+                      {highlightJs(`var D: float = scene.canvas.height / 2 / tan(deg_to_rad(scene.camera.fov) / 2)
+for l in scene.layers:
     var pl := ParallaxLayer.new()
-    pl.motion_scale = Vector2(1 - l.factorX, 1 - l.factorY)
+    var f := 1.0 - l.depth / D   # depth → scroll factor
+    pl.motion_scale = Vector2(f, f)
     pl.motion_offset = Vector2(l.offsetX, l.offsetY)
     pl.add_child(sprite_for(l.src))`)}
                     </CodeBlock>
@@ -336,10 +339,11 @@ scene.layers.forEach((l, i) => {
                   <AccordionContent>
                     {t("guide.engines.web")}
                     <CodeBlock filename="main.js" className="mt-3" preClassName="text-[11px]">
-                      {highlightJs(`const render = await loadScene('./scene.json', canvas);
+                      {highlightJs(`// runtime.html already renders the scene — just drive the camera:
 (function loop() {
-  camera.x = player.x - canvas.width / 2;  // your call
-  render();
+  cam.position.x = player.x;          // your call
+  cam.lookAt(player.x, H - player.y, 0);
+  renderer.render(world, cam);
   requestAnimationFrame(loop);
 })();`)}
                     </CodeBlock>

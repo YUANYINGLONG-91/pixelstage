@@ -1,35 +1,34 @@
 import { useState } from "react";
-import StageCanvas from "@/components/StageCanvas";
+import StageCanvas3D from "@/components/StageCanvas3DLazy";
 import { getCachedPlaceholderScene, type PlaceholderTheme } from "@/core/placeholder";
-import type { Camera } from "@/core/types";
+import type { Camera3D } from "@/core/types";
 
 /**
- * A live mini parallax stage for marketing pages — the SAME render loop and
- * math as the editor. Auto-sweeps; dragging takes over (resumes after idle).
+ * A live mini HD-2D stage for marketing pages — the SAME WebGL engine as the
+ * editor ("the demo IS the product"). Previews auto-orbit; not interactive.
  */
 export default function ScenePreview({
   theme,
-  onFirstDrag,
   playing = true,
   className,
 }: {
   theme: PlaceholderTheme;
-  onFirstDrag?: () => void;
   playing?: boolean;
   className?: string;
 }) {
   const scene = getCachedPlaceholderScene(theme);
-  const [camera, setCamera] = useState<Camera>(scene.camera);
+  const [camera, setCamera] = useState<Camera3D>(scene.camera);
 
   return (
-    <StageCanvas
+    <StageCanvas3D
       sceneSize={scene.canvas}
       layers={scene.layers}
       camera={camera}
+      effects={scene.effects}
       onCameraChange={setCamera}
       playing={playing}
-      sweepOptions={{ rangeX: scene.canvas.width * 0.12, rangeY: scene.canvas.height * 0.04, period: 7 }}
-      onFirstDrag={onFirstDrag}
+      interactive={false}
+      pathPreset="orbit"
       className={className}
     />
   );

@@ -17,25 +17,36 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import CodeBlock from "@/components/CodeBlock";
 import ScenePreview from "@/components/ScenePreview";
-import StageCanvas from "@/components/StageCanvas";
+import StageCanvas3D from "@/components/StageCanvas3DLazy";
 import { FadeUp, MonoChip, SectionEyebrow } from "@/components/marketing";
 import { highlightJs, highlightJson } from "@/components/editor/ExportModal";
-import { getCachedPlaceholderScene } from "@/core/placeholder";
+import { getCachedPlaceholderScene, PLACEHOLDER_META } from "@/core/placeholder";
 import { RUNTIME_SNIPPET } from "@/core/scene";
-import type { Camera } from "@/core/types";
+import type { Camera3D } from "@/core/types";
 import { useT } from "@/i18n";
 import type { DictKey } from "@/i18n/dict";
 import { GITHUB_URL } from "@/lib/constants";
 import { toast } from "@/store/toastStore";
 
 const DEMO_JSON = `{
-  "version": 1,
+  "version": 2,
   "canvas": { "width": 960, "height": 540 },
+  "camera": {
+    "position": { "x": 480, "y": 270, "z": 741.6 },
+    "target":   { "x": 480, "y": 270, "z": 0 },
+    "fov": 40
+  },
+  "effects": {
+    "dof": { "enabled": true, "focus": 0, "aperture": 0.3 },
+    "fog": { "enabled": false, "color": "#0A0C10", "near": 400, "far": 2400 },
+    "ambient": { "color": "#B8C4E0", "intensity": 0.9 },
+    "sun": { "color": "#FFF2D8", "intensity": 1.1, "azimuth": 35, "elevation": 50 }
+  },
   "layers": [
-    { "name": "sky",    "src": "valley-sky.png",   "factorX": 0.05, "factorY": 0.02, "scale": 1, "offsetX": 0, "offsetY": 0, "visible": true },
-    { "name": "hills",  "src": "valley-far.png",   "factorX": 0.15, "factorY": 0.05, "scale": 1, "offsetX": 0, "offsetY": 0, "visible": true },
-    { "name": "shrine", "src": "valley-mid.png",   "factorX": 0.40, "factorY": 0.12, "scale": 1, "offsetX": 0, "offsetY": 0, "visible": true },
-    { "name": "grass",  "src": "valley-front.png", "factorX": 0.80, "factorY": 0.20, "scale": 1, "offsetX": 0, "offsetY": 0, "visible": true }
+    { "name": "sky",    "src": "village-sky.png",   "depth": 700, "scale": 1, "offsetX": 0, "offsetY": 0, "orientation": "vertical", "lit": false, "visible": true },
+    { "name": "hills",  "src": "village-far.png",   "depth": 420, "scale": 1, "offsetX": 0, "offsetY": 0, "orientation": "vertical", "lit": true,  "visible": true },
+    { "name": "shrine", "src": "village-mid.png",   "depth": 180, "scale": 1, "offsetX": 0, "offsetY": 0, "orientation": "vertical", "lit": true,  "visible": true },
+    { "name": "grass",  "src": "village-front.png", "depth": -60, "scale": 1, "offsetX": 0, "offsetY": 0, "orientation": "ground",   "lit": true,  "visible": true }
   ]
 }`;
 
@@ -60,8 +71,8 @@ export default function HomePage() {
 function Hero() {
   const navigate = useNavigate();
   const t = useT();
-  const scene = getCachedPlaceholderScene("valley");
-  const [camera, setCamera] = useState<Camera>(scene.camera);
+  const scene = getCachedPlaceholderScene("village");
+  const [camera, setCamera] = useState<Camera3D>(scene.camera);
   const [playing, setPlaying] = useState(true);
   const [dragged, setDragged] = useState(false);
   const headline = t("hero.h1a");
@@ -162,25 +173,26 @@ function Hero() {
         >
           <div className="pixel-notch relative border border-border-strong bg-bg-1">
             <div className="relative aspect-video">
-              <StageCanvas
+              <StageCanvas3D
                 sceneSize={scene.canvas}
                 layers={scene.layers}
                 camera={camera}
+                effects={scene.effects}
                 onCameraChange={setCamera}
                 playing={playing}
+                pathPreset="orbit"
                 onFirstDrag={() => {
                   setDragged(true);
                   setPlaying(false);
                 }}
-                sweepOptions={{ rangeX: 120, rangeY: 24, period: 8 }}
               />
               {/* HUD chips */}
               <div className="absolute left-2 top-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1 font-mono text-[11px] text-text-3">
-                cam.x <span className="text-teal">{String(Math.round(camera.x)).padStart(3, "0")}</span>{" "}
-                · cam.y <span className="text-teal">{String(Math.round(camera.y)).padStart(3, "0")}</span>
+                tgt.x <span className="text-teal">{String(Math.round(camera.target.x)).padStart(3, "0")}</span>{" "}
+                · tgt.y <span className="text-teal">{String(Math.round(camera.target.y)).padStart(3, "0")}</span>
               </div>
               <div className="absolute bottom-2 right-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1 font-mono text-[10px] text-text-3">
-                0.05 → 0.80
+                webgl · hd-2d
               </div>
               {!dragged && (
                 <div className="absolute bottom-2 left-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1 font-mono text-[10px] text-amber transition-opacity duration-500">
@@ -195,7 +207,13 @@ function Hero() {
               <span className="font-mono text-[11px] text-text-3">{t("hero.autoSweep")}</span>
             </div>
             <button
-              onClick={() => setCamera({ ...scene.camera })}
+              onClick={() =>
+                setCamera({
+                  position: { ...scene.camera.position },
+                  target: { ...scene.camera.target },
+                  fov: scene.camera.fov,
+                })
+              }
               className="font-mono text-[11px] text-text-3 transition-colors hover:text-amber"
             >
               {t("hero.resetCamera")}
@@ -322,30 +340,22 @@ function HowItWorks() {
       visual: (
         <div className="flex h-28 flex-col justify-center gap-3 rounded border border-border bg-bg-0 px-4 font-mono text-[11px]">
           <div className="flex items-center gap-2">
-            <span className="w-16 text-text-3">factorX</span>
-            <div className="h-1 flex-1 bg-bg-3">
+            <span className="w-16 text-text-3">depth</span>
+            <div className="relative h-1 flex-1 bg-bg-3">
+              <div className="absolute left-1/3 top-0 h-full w-px bg-text-3/50" />
               <motion.div
-                className="h-full bg-amber"
-                initial={{ width: "10%" }}
-                whileInView={{ width: "40%" }}
+                className="absolute left-1/3 top-1/2 h-3 w-3 -translate-y-1/2 border border-amber bg-bg-0"
+                initial={{ left: "60%" }}
+                whileInView={{ left: "33%" }}
                 viewport={{ once: true }}
                 transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
               />
             </div>
-            <span className="text-amber">0.40</span>
+            <span className="text-amber">0</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-16 text-text-3">factorY</span>
-            <div className="h-1 flex-1 bg-bg-3">
-              <motion.div
-                className="h-full bg-teal"
-                initial={{ width: "5%" }}
-                whileInView={{ width: "12%" }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.2, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-              />
-            </div>
-            <span className="text-teal">0.12</span>
+            <span className="w-16 text-text-3">parallax</span>
+            <span className="text-teal">×1.00 → the focal plane, pixels 1:1</span>
           </div>
         </div>
       ),
@@ -358,10 +368,10 @@ function HowItWorks() {
       visual: (
         <CodeBlock filename="scene.json" preClassName="!p-3 text-[10px] max-h-28 overflow-hidden">
           {highlightJson(`{
-  "version": 1,
+  "version": 2,
   "layers": [
-    { "name": "sky", "factorX": 0.05 },
-    { "name": "grass", "factorX": 0.80 }
+    { "name": "sky", "depth": 700, "lit": false },
+    { "name": "grass", "depth": -60, "orientation": "ground" }
   ]
 }`)}
         </CodeBlock>
@@ -454,12 +464,12 @@ function PortableJson() {
       </FadeUp>
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         <FadeUp delay={0.1}>
-          <CodeBlock filename="sunset-valley.json" preClassName="max-h-[380px]">
+          <CodeBlock filename="goldenhollow-village.json" preClassName="max-h-[380px]">
             {highlightJson(DEMO_JSON)}
           </CodeBlock>
         </FadeUp>
         <FadeUp delay={0.2}>
-          <CodeBlock filename="runtime.js" preClassName="max-h-[240px]">
+          <CodeBlock filename="runtime.html" preClassName="max-h-[240px]">
             {highlightJs(RUNTIME_SNIPPET.split("\n").slice(0, 14).join("\n"))}
           </CodeBlock>
           <ul className="mt-5 space-y-2.5">
@@ -496,9 +506,10 @@ function PortableJson() {
 function GalleryTeaser() {
   const t = useT();
   const scenes = [
-    { theme: "valley" as const, name: "Sunset Valley", layers: 4, range: "0.05–0.80" },
-    { theme: "alley" as const, name: "Neon Alley", layers: 3, range: "0.10–0.85" },
-    { theme: "dungeon" as const, name: "Ember Dungeon", layers: 3, range: "0.08–0.90" },
+    { theme: "village" as const, name: "Goldenhollow Village" },
+    { theme: "snow" as const, name: "Stillsnow Pass" },
+    { theme: "ruins" as const, name: "Emberhold Ruins" },
+    { theme: "alley" as const, name: "Neon Alley" },
   ];
   return (
     <section className="mx-auto max-w-[1200px] px-4 py-24 md:py-32">
@@ -516,7 +527,7 @@ function GalleryTeaser() {
           {t("teaser.browse")}
         </Link>
       </FadeUp>
-      <div className="mt-10 grid gap-5 md:grid-cols-3">
+      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {scenes.map((s, i) => (
           <FadeUp key={s.name} delay={i * 0.1}>
             <Link
@@ -529,10 +540,8 @@ function GalleryTeaser() {
               <div className="flex items-center justify-between p-4">
                 <span className="font-semibold text-text-1">{s.name}</span>
                 <div className="flex gap-1.5">
-                  <MonoChip>
-                    {s.layers} {t("teaser.layers")}
-                  </MonoChip>
-                  <MonoChip variant="teal">{s.range}</MonoChip>
+                  <MonoChip>{PLACEHOLDER_META[s.theme].tag}</MonoChip>
+                  <MonoChip variant="teal">HD-2D</MonoChip>
                 </div>
               </div>
             </Link>

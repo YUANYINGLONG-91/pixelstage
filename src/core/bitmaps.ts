@@ -28,7 +28,9 @@ export async function getBitmap(layerId: string, src: string): Promise<Entry | n
     try {
       const res = await fetch(src);
       const blob = await res.blob();
-      const bitmap = await createImageBitmap(blob);
+      // bake the y-flip into the bitmap: WebGL ignores UNPACK_FLIP_Y for
+      // ImageBitmap uploads, so flipY on the texture alone has no effect
+      const bitmap = await createImageBitmap(blob, { imageOrientation: "flipY" });
       const entry: Entry = { src, bitmap, width: bitmap.width, height: bitmap.height };
       const prev = cache.get(layerId);
       if (prev && prev.src !== src) prev.bitmap.close();

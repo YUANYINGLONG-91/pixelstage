@@ -26,17 +26,19 @@ import { GITHUB_URL } from "@/lib/constants";
 import { toast } from "@/store/toastStore";
 import { cn } from "@/lib/utils";
 
-const THEMES: PlaceholderTheme[] = ["valley", "alley", "dungeon"];
+const THEMES: PlaceholderTheme[] = ["village", "snow", "ruins", "alley"];
 const FILTERS: { key: string; label: DictKey }[] = [
   { key: "ALL", label: "gal.all" },
+  { key: "TOWN", label: "gal.town" },
   { key: "NATURE", label: "gal.nature" },
-  { key: "URBAN", label: "gal.urban" },
   { key: "INTERIOR", label: "gal.interior" },
+  { key: "URBAN", label: "gal.urban" },
 ];
 const DESC_KEYS: Record<PlaceholderTheme, DictKey> = {
-  valley: "gal.valleyDesc",
+  village: "gal.villageDesc",
+  snow: "gal.snowDesc",
+  ruins: "gal.ruinsDesc",
   alley: "gal.alleyDesc",
-  dungeon: "gal.dungeonDesc",
 };
 
 export default function GalleryPage() {
@@ -103,7 +105,6 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
   const t = useT();
   const scene = getCachedPlaceholderScene(theme);
   const meta = PLACEHOLDER_META[theme];
-  const [hintVisible, setHintVisible] = useState(true);
 
   const openInEditor = async () => {
     await saveProject(scene);
@@ -128,7 +129,7 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
   return (
     <div className="group overflow-hidden rounded-md border border-border bg-bg-1 transition-all duration-200 hover:-translate-y-1 hover:border-border-strong hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
       <div className="relative aspect-video">
-        <ScenePreview theme={theme} onFirstDrag={() => setHintVisible(false)} />
+        <ScenePreview theme={theme} />
         <div className="absolute right-2 top-2 flex gap-1.5">
           <span className="rounded-sm border border-border bg-bg-2/85 px-1.5 py-0.5 font-mono text-[10px] text-text-3">
             960×540
@@ -137,11 +138,6 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
             {scene.layers.length} {t("gal.layersChip")}
           </span>
         </div>
-        {hintVisible && (
-          <div className="absolute bottom-2 left-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1 font-mono text-[10px] text-amber opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            DRAG
-          </div>
-        )}
       </div>
 
       <div className="p-5">
@@ -156,7 +152,7 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
             <p key={l.id} className="font-mono text-[11px] text-text-3">
               <span className="text-text-1">{l.name}</span>
               {" "}{"─".repeat(Math.max(1, 12 - l.name.length))}{" "}
-              fx <span className="text-teal">{l.factorX.toFixed(2)}</span>
+              z <span className="text-teal">{l.depth}</span>
             </p>
           ))}
         </div>
@@ -192,7 +188,7 @@ function ExplodeModal({
   if (!theme) return null;
   const scene = getCachedPlaceholderScene(theme);
   const meta = PLACEHOLDER_META[theme];
-  const fxValues = scene.layers.map((l) => l.factorX);
+  const depths = scene.layers.map((l) => l.depth);
 
   const openInEditor = async () => {
     await saveProject(scene);
@@ -241,7 +237,7 @@ function ExplodeModal({
                     />
                     {explodedView && (
                       <span className="absolute -left-1 top-1 rounded-sm border border-border bg-bg-2 px-1.5 py-0.5 font-mono text-[10px] text-teal">
-                        fx {l.factorX.toFixed(2)}
+                        z {l.depth}
                       </span>
                     )}
                   </div>
@@ -263,7 +259,7 @@ function ExplodeModal({
               {[
                 [t("gal.layersStat"), String(scene.layers.length)],
                 [t("gal.canvasStat"), "960×540"],
-                ["FX RANGE", `${Math.min(...fxValues).toFixed(2)}–${Math.max(...fxValues).toFixed(2)}`],
+                [t("gal.fxRange"), `${Math.min(...depths)} – ${Math.max(...depths)}`],
                 [t("gal.tagStat"), t(FILTERS.find((f) => f.key === meta.tag)!.label)],
               ].map(([k, v]) => (
                 <div key={k} className="rounded border border-border bg-bg-2 p-2.5">
@@ -281,7 +277,7 @@ function ExplodeModal({
                   </div>
                   <span className="flex-1 truncate text-xs text-text-1">{l.name}</span>
                   <span className="font-mono text-[10px] text-teal">
-                    {l.factorX.toFixed(2)} / {l.factorY.toFixed(2)}
+                    z {l.depth} · {l.orientation === "ground" ? t("term.ground") : t("term.vertical")}
                   </span>
                 </div>
               ))}
