@@ -157,7 +157,6 @@ export function planks(p: Painter, x: number, y: number, w: number, h: number, t
  * on the sun side. tones = [outline, shade, mid, light].
  */
 export function leafCluster(p: Painter, cx: number, cy: number, r: number, tones: RGB[]) {
-  const rng = p.rng;
   p.blob(cx, cy, r, tones[0]);
   p.blob(cx, cy + 1, r - 1, tones[1]);
   p.blob(cx + 1, cy - 1, r - 2, tones[2]);
