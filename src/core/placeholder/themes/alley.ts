@@ -32,23 +32,34 @@ function backWall(): string {
   p.rect(370, 4, 2, 20, hexToRgb("#0A0D18"));
   p.px(370, 2, hexToRgb("#E04848"));
   p.glow(371, 3, 3, "#E04848", 2, 0.4);
-  // window grid: mullioned, warm/cool lit mix with halos
-  for (let gy = 36; gy < 258; gy += 11) {
-    for (let gx = 8; gx < 472; gx += 13) {
-      const roll = p.rng();
-      if (roll > 0.72) {
-        const warm = p.rng() > 0.45;
-        const c = hexToRgb(warm ? AMBER : CYAN);
-        p.rect(gx, gy, 7, 8, mix(c, [255, 255, 255], 0.15), 0.9);
-        p.rect(gx + 2, gy + 3, 3, 3, mix(c, [255, 255, 255], 0.65));
-        p.px(gx + 3, gy + 4, HOT, 0.9);
-        p.rect(gx - 1, gy - 1, 9, 10, c, 0.12); // halo
-        // mullions
-        p.rect(gx + 3, gy, 1, 8, hexToRgb("#0C0E18"));
-        p.rect(gx, gy + 4, 7, 1, hexToRgb("#0C0E18"));
-      } else if (roll > 0.4) {
-        p.rect(gx, gy, 7, 8, hexToRgb("#0E1120"));
-        p.rect(gx, gy, 7, 1, hexToRgb("#1A2032")); // sky reflection
+  // window grids: each tower gets its own spacing + lit ratio, with dark
+  // gaps between towers so the wall reads as buildings, not wallpaper
+  const towers = [
+    { x0: 8, x1: 140, sx: 12, sy: 12, lit: 0.3 },
+    { x0: 156, x1: 234, sx: 10, sy: 9, lit: 0.42 }, // tall center tower
+    { x0: 252, x1: 322, sx: 14, sy: 11, lit: 0.18 },
+    { x0: 336, x1: 388, sx: 10, sy: 10, lit: 0.4 },
+    { x0: 404, x1: 472, sx: 13, sy: 12, lit: 0.26 },
+  ];
+  for (const t of towers) {
+    for (let gy = 40; gy < 252; gy += t.sy) {
+      if (p.rng() < 0.12) continue; // whole floor dark
+      for (let gx = t.x0; gx < t.x1; gx += t.sx) {
+        const roll = p.rng();
+        if (roll < t.lit) {
+          const warm = p.rng() > 0.45;
+          const c = hexToRgb(warm ? AMBER : CYAN);
+          p.rect(gx, gy, 7, 8, mix(c, [255, 255, 255], 0.15), 0.9);
+          p.rect(gx + 2, gy + 3, 3, 3, mix(c, [255, 255, 255], 0.65));
+          p.px(gx + 3, gy + 4, HOT, 0.9);
+          p.rect(gx - 1, gy - 1, 9, 10, c, 0.12); // halo
+          // mullions
+          p.rect(gx + 3, gy, 1, 8, hexToRgb("#0C0E18"));
+          p.rect(gx, gy + 4, 7, 1, hexToRgb("#0C0E18"));
+        } else if (roll < t.lit + 0.26) {
+          p.rect(gx, gy, 7, 8, hexToRgb("#0E1120"));
+          p.rect(gx, gy, 7, 1, hexToRgb("#1A2032")); // sky reflection
+        }
       }
     }
   }
@@ -76,15 +87,15 @@ function wire(p: Painter, x0: number, y0: number, x1: number, y1: number, sag: n
 
 function midFacades(): string {
   const p = new Painter(W, H).seed(66);
-  // framing walls
-  p.rect(0, 0, 72, 270, hexToRgb("#10121E"));
-  p.rect(417, 0, 63, 270, hexToRgb("#0F111D"));
-  p.rect(66, 0, 6, 270, hexToRgb("#0A0C16")); // inner edge shade
-  p.rect(417, 0, 6, 270, hexToRgb("#0A0C16"));
+  // framing walls — wide enough to read as a corridor
+  p.rect(0, 0, 100, 270, hexToRgb("#10121E"));
+  p.rect(380, 0, 100, 270, hexToRgb("#0F111D"));
+  p.rect(94, 0, 6, 270, hexToRgb("#0A0C16")); // inner edge shade
+  p.rect(380, 0, 6, 270, hexToRgb("#0A0C16"));
   // sparse windows on the framing walls
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 20; i++) {
     const left = p.rng() > 0.5;
-    const x = left ? 8 + Math.floor(p.rng() * 50) : 425 + Math.floor(p.rng() * 46);
+    const x = left ? 8 + Math.floor(p.rng() * 76) : 392 + Math.floor(p.rng() * 76);
     const y = 20 + Math.floor(p.rng() * 200);
     const lit = p.rng() > 0.75;
     p.rect(x, y, 6, 7, hexToRgb(lit ? "#3A5A6A" : "#0A0C16"));
@@ -94,12 +105,12 @@ function midFacades(): string {
     }
   }
   // AC units + pipes
-  acUnit(p, 48, 92);
-  acUnit(p, 424, 150);
-  p.rect(58, 0, 5, 270, hexToRgb("#181B28")); // drainpipes
-  p.rect(438, 0, 5, 270, hexToRgb("#161A26"));
-  p.rect(58, 60, 5, 1, hexToRgb("#232840"), 0.8);
-  p.rect(438, 110, 5, 1, hexToRgb("#232840"), 0.8);
+  acUnit(p, 40, 92);
+  acUnit(p, 428, 150);
+  p.rect(90, 0, 5, 270, hexToRgb("#181B28")); // drainpipes
+  p.rect(386, 0, 5, 270, hexToRgb("#161A26"));
+  p.rect(90, 60, 5, 1, hexToRgb("#232840"), 0.8);
+  p.rect(386, 110, 5, 1, hexToRgb("#232840"), 0.8);
   // fire-escape zigzag on the left wall
   const esc = hexToRgb("#1C2030");
   for (let i = 0; i < 3; i++) {
@@ -109,9 +120,9 @@ function midFacades(): string {
     for (let s = 0; s < 9; s++) p.rect(12 + s * 3, y + 2 + s * 3, 2, 2, esc); // stairs
   }
   // sagging wires with hanging lanterns
-  wire(p, 72, 30, 417, 26, 26);
-  wire(p, 72, 52, 417, 58, 30);
-  wire(p, 72, 76, 417, 70, 24);
+  wire(p, 100, 30, 380, 26, 26);
+  wire(p, 100, 52, 380, 58, 30);
+  wire(p, 100, 76, 380, 70, 24);
   for (const [lx, ly] of [
     [200, 62],
     [280, 66],
@@ -122,11 +133,11 @@ function midFacades(): string {
     p.rect(lx - 1, ly + 1, 3, 4, hexToRgb(AMBER));
     p.px(lx, ly + 2, HOT);
   }
-  // neon signs on the framing walls
-  neonSign(p, 10, 60, 44, MAGENTA);
-  neonSign(p, 10, 150, 36, CYAN);
-  neonSign(p, 444, 90, 44, CYAN);
-  neonSign(p, 444, 170, 30, AMBER);
+  // neon signs on the inner edges of the framing walls, facing the street
+  neonSign(p, 80, 60, 44, MAGENTA);
+  neonSign(p, 80, 150, 36, CYAN);
+  neonSign(p, 392, 90, 44, CYAN);
+  neonSign(p, 392, 170, 30, AMBER);
   return p.dataURL();
 }
 
@@ -204,9 +215,11 @@ function ground(): string {
   // toward the horizon (sign x positions from mid + near facades)
   const streaks: [number, string, number][] = [
     [19, MAGENTA, 6], // near-left big sign
-    [60, CYAN, 4],
-    [430, CYAN, 5],
-    [462, CYAN, 6],
+    [80, MAGENTA, 4], // mid-left signs
+    [80, CYAN, 3],
+    [392, CYAN, 4], // mid-right signs
+    [392, AMBER, 3],
+    [462, CYAN, 6], // near-right big sign
     [462, AMBER, 4],
     [240, AMBER, 3], // wire lanterns
     [400, AMBER, 5], // foreground lantern
@@ -216,7 +229,7 @@ function ground(): string {
     for (let y = groundRow(300); y > 0; y -= 2) {
       const fade = 1 - y / 480;
       if (p.rng() < 0.3 * fade) continue; // broken reflection
-      const a = 0.22 * fade + 0.04;
+      const a = 0.3 * fade + 0.05;
       p.rect(sx + Math.round(Math.sin(y * 0.04 + sx) * 3), y, w, 2, rgb, a * (0.6 + p.rng() * 0.4));
       if (p.rng() < 0.25 * fade) {
         p.rect(sx + Math.round(Math.sin(y * 0.04 + sx) * 3) + Math.floor(w / 2), y, 1, 2, [255, 255, 255], a * 0.8);
@@ -227,11 +240,13 @@ function ground(): string {
   for (let i = 0; i < 26; i++) {
     const y = Math.floor(p.rng() * 380);
     const w = 20 + Math.floor(p.rng() * 50);
-    p.rect(Math.floor(p.rng() * 420), y, w, 2, hexToRgb("#8CB4DC"), 0.1);
+    p.rect(Math.floor(p.rng() * 420), y, w, 2, hexToRgb("#8CB4DC"), 0.16);
     if (p.rng() > 0.5) p.rect(Math.floor(p.rng() * 420), y + 2, Math.floor(w / 2), 1, hexToRgb(CYAN), 0.12);
   }
   // warm pool under the foreground lantern
   p.glow(400, groundRow(-300) - 10, 40, AMBER, 5, 0.25);
+  // umbrella glow spilling around the runner
+  p.glow(240, groundRow(10) + 4, 34, CYAN, 5, 0.3);
   return p.dataURL();
 }
 
@@ -242,7 +257,7 @@ export function alleyLayers(): Layer[] {
     billboard("back wall", backWall(), 700, 1.25, { lit: false }),
     billboard("mid facades", midFacades(), 350, 1.1),
     billboard("neon signs", nearSigns(), 120, 1.03),
-    characterLayer("runner", "runner", W * 0.5, 10),
+    characterLayer("runner", "runner", W * 0.5, 10, 1.2),
     groundPlane("wet asphalt", ground()),
     billboard("foreground junk", foreground(), -300, 1.35),
   ];
@@ -250,8 +265,8 @@ export function alleyLayers(): Layer[] {
 
 export function alleyEffects(): RenderEffects {
   const fx = defaultEffects();
-  fx.sun = { color: "#7A8FC8", intensity: 0.4, azimuth: 210, elevation: 55 };
-  fx.ambient = { color: "#7E86D8", intensity: 1.0 };
+  fx.sun = { color: "#7A8FC8", intensity: 0.55, azimuth: 210, elevation: 55 };
+  fx.ambient = { color: "#7E86D8", intensity: 1.12 };
   fx.fog = { enabled: true, color: "#0E2228", near: 600, far: 2200 };
   fx.dof = { enabled: true, focus: 150, aperture: 0.35 };
   fx.bloom = { enabled: true, strength: 1.0, threshold: 0.32 };

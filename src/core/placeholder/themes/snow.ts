@@ -122,7 +122,7 @@ function mountains(): string {
 function pines(): string {
   const p = new Painter(W, H).seed(73);
   const base = 244; // baseRow(160)
-  const pine = ramp("#1E3A3A");
+  const pine = ramp("#27504C");
   // back row, smaller
   for (const [x, h] of [
     [30, 44],
@@ -277,7 +277,7 @@ export function snowLayers(): Layer[] {
     billboard("mountains & cabins", mountains(), 420, 1.15),
     billboard("snow pines", pines(), 160, 1.08),
     billboard("shrine gate", shrine(), 0),
-    characterLayer("pilgrim", "pilgrim", W * 0.5, 10),
+    characterLayer("pilgrim", "pilgrim", W * 0.5, 10, 1.2),
     groundPlane("snowfield", ground()),
     billboard("snowdrift fringe", foreground(), -300, 1.35),
   ];

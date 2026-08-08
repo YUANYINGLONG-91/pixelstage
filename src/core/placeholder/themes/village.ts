@@ -213,9 +213,9 @@ function foreground(): string {
 function ground(): string {
   const p = new Painter(W, G).seed(101);
   // earth base: warm loam near → dusk mauve at the horizon
-  p.sky(["#3A3226", "#4A3E30", "#5E4A44", "#6E4E50"], 0.3, 480);
+  p.sky(["#55452F", "#67503C", "#725550", "#7C5B58"], 0.3, 480);
   // cobblestone plaza: constant world-size stones, staggered courses
-  const stone = ramp("#8A7E6E");
+  const stone = ramp("#9C8D78");
   for (let row = 0; row < 480; row += 6) {
     const off = (row / 6) % 2 === 0 ? 0 : 5;
     for (let x = -off; x < 480; x += 10) {
@@ -242,15 +242,15 @@ function ground(): string {
   }
   // warm light pools under the focal-plane props (row = groundRow(0) ≈ 26)
   const r0 = groundRow(0);
-  p.glow(120, r0 + 8, 40, "#FFB648", 6, 0.4); // stall lantern spill
-  p.glow(330, r0 + 6, 34, "#FFC45E", 5, 0.4); // street lamp
-  p.glow(210, r0 + 10, 26, "#FFB648", 5, 0.35); // stone lantern
+  p.glow(120, r0 + 8, 52, "#FFB648", 6, 0.55); // stall lantern spill
+  p.glow(330, r0 + 6, 44, "#FFC45E", 5, 0.55); // street lamp
+  p.glow(210, r0 + 10, 34, "#FFB648", 5, 0.5); // stone lantern
   // pool under the houses' windows (depth 180)
-  p.glow(90, groundRow(180), 50, "#E8935C", 6, 0.22);
-  p.glow(360, groundRow(180), 46, "#E8935C", 6, 0.22);
+  p.glow(90, groundRow(180), 56, "#E8935C", 6, 0.3);
+  p.glow(360, groundRow(180), 52, "#E8935C", 6, 0.3);
   // near-edge corner falloff
-  for (let y = 0; y < 60; y++) {
-    p.rect(0, y, 480, 1, [8, 10, 14], 0.5 * (1 - y / 60));
+  for (let y = 0; y < 46; y++) {
+    p.rect(0, y, 480, 1, [8, 10, 14], 0.3 * (1 - y / 46));
   }
   return p.dataURL();
 }
@@ -263,8 +263,8 @@ export function villageLayers(): Layer[] {
     billboard("town silhouette", townSilhouette(), 400, 1.15),
     billboard("houses", housesRow(), 180, 1.08),
     billboard("market square", marketSquare(), 0),
-    characterLayer("warrior", "warrior", W * 0.44, 10),
-    characterLayer("merchant", "merchant", W * 0.56, 34),
+    characterLayer("warrior", "warrior", W * 0.44, 10, 1.2),
+    characterLayer("merchant", "merchant", W * 0.56, 34, 1.15),
     groundPlane("cobblestone square", ground()),
     billboard("grass fringe", foreground(), -300, 1.35),
   ];
@@ -273,7 +273,7 @@ export function villageLayers(): Layer[] {
 export function villageEffects(): RenderEffects {
   const fx = defaultEffects();
   fx.sun = { color: "#FFB648", intensity: 1.6, azimuth: 60, elevation: 42 };
-  fx.ambient = { color: "#9A8AC0", intensity: 0.95 };
+  fx.ambient = { color: "#9A8AC0", intensity: 1.05 };
   fx.fog = { enabled: true, color: "#9E6B58", near: 900, far: 2600 };
   fx.dof = { enabled: true, focus: 0, aperture: 0.35 };
   fx.bloom = { enabled: true, strength: 0.7, threshold: 0.5 };

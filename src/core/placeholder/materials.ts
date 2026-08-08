@@ -29,16 +29,19 @@ export function stoneWall(
     const by = y + row * blockH;
     const off = row % 2 === 0 ? 0 : Math.floor(blockW / 2);
     for (let bx = x - off; bx < x + w; bx += blockW) {
-      const bw = Math.min(blockW - 1, x + w - bx);
+      // clamp the course to the wall rect — staggered rows must not
+      // protrude past the left/right silhouette
+      const bx0 = Math.max(bx, x);
+      const bw = Math.min(bx + blockW - 1, x + w) - bx0;
       if (bw <= 1) continue;
       const shade = rng() < 0.2;
-      p.rect(bx, by, bw, blockH - 1, shade ? mix(tones[1], tones[2], 0.5) : tones[2]);
-      p.rect(bx, by, bw, 1, tones[3]); // top bevel
-      p.rect(bx, by, 1, blockH - 1, tones[3]); // left bevel
-      p.rect(bx, by + blockH - 2, bw, 1, tones[1]); // bottom shade
+      p.rect(bx0, by, bw, blockH - 1, shade ? mix(tones[1], tones[2], 0.5) : tones[2]);
+      p.rect(bx0, by, bw, 1, tones[3]); // top bevel
+      p.rect(bx0, by, 1, blockH - 1, tones[3]); // left bevel
+      p.rect(bx0, by + blockH - 2, bw, 1, tones[1]); // bottom shade
       if (rng() < 0.12) {
         // crack
-        let cx = bx + 2 + Math.floor(rng() * (bw - 4));
+        let cx = bx0 + 2 + Math.floor(rng() * Math.max(1, bw - 4));
         let cy = by + 1;
         for (let s = 0; s < 3; s++) {
           p.px(cx, cy, tones[0]);
@@ -183,7 +186,11 @@ export function trunk(p: Painter, x: number, yBase: number, w: number, h: number
   p.px(x + w + 1, yBase - 1, tones[1]);
 }
 
-/** Pine with blocky tiers; `snow` dusts each tier top. */
+/**
+ * Pine built as a continuous tapered silhouette: a stepped triangle with
+ * jagged tier overhangs, outlined tips, and (optionally) snow resting on
+ * each tier ledge. Reads as a tree at billboard distance, not stacked bars.
+ */
 export function pineTree(
   p: Painter,
   x: number,
@@ -192,23 +199,43 @@ export function pineTree(
   tones: RGB[],
   snow: RGB[] | null = null
 ) {
-  const tiers = 4;
-  const trunkH = Math.round(h * 0.18);
-  p.rect(x - 1, yBase - trunkH, 2, trunkH, tones[1]);
-  for (let i = 0; i < tiers; i++) {
-    const ty = yBase - trunkH - Math.round(((i + 0.6) * (h - trunkH)) / tiers);
-    const tw = Math.round(((h * 0.62) * (tiers - i)) / tiers);
-    const th = Math.max(2, Math.round(h / tiers / 2.2));
-    p.rect(x - Math.floor(tw / 2), ty, tw, th, tones[1]);
-    p.rect(x - Math.floor(tw / 2) + 1, ty + 1, tw - 2, th - 1, tones[2]);
-    // sun-side lit edge
-    p.rect(x + Math.floor(tw / 2) - 2, ty + 1, 1, th - 1, tones[3]);
-    // hanging shade under each tier
-    p.rect(x - Math.floor(tw / 2) + 1, ty + th - 1, tw - 2, 1, tones[0]);
-    if (snow) {
-      p.rect(x - Math.floor(tw / 2), ty, tw, 1, snow[3]);
-      p.rect(x - Math.floor(tw / 2) + 2, ty - 1, Math.max(1, tw - 5), 1, snow[2]);
+  const trunkH = Math.max(2, Math.round(h * 0.14));
+  const trunkW = Math.max(2, Math.round(h * 0.07));
+  p.rect(x - Math.floor(trunkW / 2), yBase - trunkH, trunkW, trunkH, tones[1]);
+  p.px(x - Math.floor(trunkW / 2), yBase - 1, tones[0]);
+  const top = yBase - h;
+  const foliageH = h - trunkH;
+  const maxHalf = Math.max(3, Math.round(h * 0.32));
+  const tierH = Math.max(3, Math.round(foliageH / 5));
+  for (let row = 0; row < foliageH; row++) {
+    const y = top + row;
+    const t = row / foliageH;
+    const tierPos = (row % tierH) / tierH;
+    let half = Math.round(maxHalf * Math.pow(t, 0.85));
+    const underside = tierPos > 0.76; // branch-tip overhang + its shade
+    if (underside) half += 1;
+    if (half < 1) half = row < 2 ? 0 : 1;
+    p.rect(x - half, y, half * 2 + 1, 1, underside ? tones[1] : tones[2]);
+    if (half > 0) {
+      p.px(x - half, y, tones[0]); // outline, shade side
+      p.px(x + half, y, underside ? tones[1] : tones[3]); // lit tip
+      // interior tone flecks so the mass doesn't read flat
+      if (half > 3 && p.rng() < 0.4) {
+        p.px(x - half + 2 + Math.floor(p.rng() * (half * 2 - 3)), y, underside ? tones[0] : tones[1]);
+      }
     }
+    // snow blankets the ledge where each tier widens again
+    if (snow && row > 0 && row % tierH === 0 && half > 1) {
+      p.rect(x - half, y, half * 2 + 1, 1, snow[2]);
+      p.rect(x, y, half, 1, snow[3]); // moonlit side
+      if (half > 4 && p.rng() < 0.6) p.px(x - half + 2, y, snow[3]);
+    }
+  }
+  if (snow) {
+    p.rect(x - 1, top - 1, 3, 2, snow[3]);
+    p.px(x, top - 2, snow[3]);
+  } else {
+    p.px(x, top, tones[3]);
   }
 }
 

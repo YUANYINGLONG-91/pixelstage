@@ -227,19 +227,21 @@ export function renderCharacter(kind: Archetype): { src: string; w: number; h: n
     p.px(cx - 5, 5, HOT);
   }
   if (kind === "runner") {
-    // umbrella: glowing canopy held high on the right
+    // umbrella: glowing canopy held high on the right — the scene's lantern
     const ux = cx + 6;
     p.rect(ux, 0, 1, 11, outline); // shaft
     p.px(ux, 0, s.accent[3]);
     p.blob(ux, 1, 7, outline);
-    p.blob(ux, 1, 6, s.cloth[1]);
-    p.blob(ux + 1, 0, 5, s.cloth[2]);
+    p.blob(ux, 1, 6, s.accent[1]);
+    p.blob(ux + 1, 0, 5, s.accent[2]);
+    p.blob(ux + 1, 0, 3, s.accent[3]); // lit heart of the canopy
+    p.px(ux + 1, 0, s.accent[4]);
     // neon rim along the canopy bottom edge
     for (let gx = ux - 6; gx <= ux + 6; gx++) {
       const d = Math.abs(gx - ux);
       if (d >= 4 && d <= 6) p.px(gx, 2, s.accent[3]);
     }
-    p.glow(ux, 1, 9, s.accent[2], 4, 0.28);
+    p.glow(ux, 1, 12, s.accent[2], 4, 0.42);
   }
 
   /* --------------------------------- rim light --------------------------------- */

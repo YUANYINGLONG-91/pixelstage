@@ -17,7 +17,7 @@ const FLAME = "#FFB648";
 /* -------------------------------- cavern wall -------------------------------- */
 
 function wallTorch(p: Painter, x: number, y: number) {
-  p.glow(x, y, 60, FLAME, 8, 0.55);
+  p.glow(x, y, 76, FLAME, 8, 0.7);
   p.rect(x - 1, y + 3, 2, 9, hexToRgb("#3A2E1E")); // bracket
   // flame: outer → core → white heart
   p.rect(x - 2, y - 3, 4, 6, hexToRgb("#C97B4A"));
@@ -137,7 +137,7 @@ function treasure(): string {
   p.rect(cx, base - 11, 30, 1, wood[0]);
   p.rect(cx, base - 16, 2, 15, gold[2]); // bands
   p.rect(cx + 28, base - 16, 2, 15, gold[2]);
-  p.glow(cx + 15, base - 9, 14, FLAME, 4, 0.45);
+  p.glow(cx + 15, base - 9, 24, FLAME, 4, 0.55);
   p.rect(cx + 13, base - 11, 4, 6, gold[3]); // lock
   p.rect(cx + 14, base - 10, 2, 3, HOT);
   // glints + scattered coins
@@ -179,11 +179,11 @@ function godRays(): string {
         [sx - 60, 270],
       ],
       hexToRgb("#FFD98A"),
-      0.05 + p.rng() * 0.04
+      0.07 + p.rng() * 0.05
     );
     // dust motes caught in the shaft
-    for (let d = 0; d < 8; d++) {
-      p.px(sx - 50 + Math.floor(p.rng() * (wTop + 50)), Math.floor(p.rng() * 270), hexToRgb("#FFE9B0"), 0.2 + p.rng() * 0.3);
+    for (let d = 0; d < 12; d++) {
+      p.px(sx - 50 + Math.floor(p.rng() * (wTop + 50)), Math.floor(p.rng() * 270), hexToRgb("#FFE9B0"), 0.25 + p.rng() * 0.35);
     }
   }
   return p.dataURL();
@@ -264,7 +264,7 @@ export function ruinsLayers(): Layer[] {
     billboard("near pillars", nearPillars(), 120, 1.03),
     billboard("god rays", godRays(), 60, 1, { lit: false }),
     billboard("treasure", treasure(), 0),
-    characterLayer("mage", "mage", W * 0.35, 15),
+    characterLayer("mage", "mage", W * 0.35, 15, 1.2),
     groundPlane("flagstone floor", ground()),
     billboard("spikes & chains", foreground(), -300, 1.35),
   ];
@@ -272,12 +272,12 @@ export function ruinsLayers(): Layer[] {
 
 export function ruinsEffects(): RenderEffects {
   const fx = defaultEffects();
-  fx.sun = { color: "#FF9A3C", intensity: 1.2, azimuth: 300, elevation: 25 };
-  fx.ambient = { color: "#7A6A88", intensity: 0.95 };
-  fx.fog = { enabled: true, color: "#0A0B10", near: 600, far: 2200 };
+  fx.sun = { color: "#FF9A3C", intensity: 1.45, azimuth: 300, elevation: 25 };
+  fx.ambient = { color: "#7A6A88", intensity: 1.15 };
+  fx.fog = { enabled: true, color: "#0A0B10", near: 700, far: 2400 };
   fx.dof = { enabled: true, focus: 300, aperture: 0.4 };
-  fx.bloom = { enabled: true, strength: 0.75, threshold: 0.5 };
-  fx.grade = { vignette: 0.6, saturation: 1.08, grain: 0.08 };
+  fx.bloom = { enabled: true, strength: 0.8, threshold: 0.42 };
+  fx.grade = { vignette: 0.55, saturation: 1.14, grain: 0.07 };
   fx.particles = { enabled: true, color: "#FFB648", count: 90, size: 2.5, speed: 1.3 };
   return fx;
 }
