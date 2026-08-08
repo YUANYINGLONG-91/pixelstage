@@ -1,124 +1,98 @@
 # PixelStage
 
-**2.5D pixel parallax scene editor — HD-2D for the rest of us.**
+**HD-2D pixel parallax scene editor — a real desktop app, a real 3D camera.**
 
-An open-source web tool for indie pixel-game developers: import layered art (sky / far / mid / foreground), tune per-layer parallax factors, preview depth with a draggable virtual camera in real time, and export one portable `scene.json` your engine renders in ~20 lines.
+An open-source tool for indie pixel-game developers: import layered art, place each layer at a true depth in 3D space (billboards **and** Octopath-style ground planes), light the scene, add depth-of-field and fog, preview with a real perspective camera — then export one portable `scene.json` + a three.js runtime that reproduces it exactly.
 
-Octopath Traveler and Wandering Sword built their look on UE4 pipelines. 99% of indie pixel games fake the same depth with plain 2D layers — PixelStage is the professional editor for that 99% path.
+v2 is a ground-up rebuild of the engine: the v1 "one multiply" 2D parallax is gone. Layers now live in a perspective 3D scene (three.js/WebGL), so parallax, occlusion and foreshortening are *real*, not faked per-axis.
 
 ## Quick start
 
 ```bash
 npm install
-npm run dev        # → http://localhost:5173
-npm run test       # vitest unit tests for the parallax core
-npm run build      # type-check + production build
+npm run dev          # web version → http://localhost:5173/editor
+npm run test         # vitest unit tests (scene migration, camera paths)
+npm run build        # type-check + production build
 ```
 
-Open `/editor`, press **Load demo scene**, drag the stage — the foreground whips past while the sky barely moves. That's the whole product.
+### Desktop app (Windows)
+
+```bash
+npm run electron:dev   # build + launch the Electron app
+npm run dist           # → dist-electron/PixelStage-Setup-2.0.0.exe (NSIS installer)
+                       # → dist-electron/PixelStage-portable.exe    (no-install exe)
+```
+
+> First `npm install` may fail to download the Electron binary on some networks.
+> Fix: `ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" node node_modules/electron/install.js`
+> If `npm run dist` stalls downloading build tools, set both mirrors first:
+> `ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" ELECTRON_BUILDER_BINARIES_MIRROR="https://npmmirror.com/mirrors/electron-builder-binaries/" npm run dist`
+
+The desktop app is fully sandboxed (no Node in the renderer) with native Save/Open dialogs, a real project-file workflow (`.pixelstage.json`, Ctrl+S / Ctrl+Shift+S / Ctrl+O), recent files, and file association — double-clicking a scene file opens it in PixelStage. The web version keeps working with browser download/upload fallbacks via `src/core/platform.ts`.
 
 ## The core loop
 
 ```
-import layers → tune per-layer factors → drag the virtual camera → export scene.json → 20-line runtime reproduces it
+import layers → place them in depth (billboard or ground plane) → light + DOF + fog
+→ orbit the perspective camera → export scene.json + runtime.html (three.js)
 ```
+
+## The depth model (scene.json v2)
+
+Each layer is a textured plane in a 3D scene:
+
+| field | meaning |
+|---|---|
+| `depth` | z position in px. `0` = focal plane (1:1 pixels) · `>0` farther · `<0` nearer than the focal plane |
+| `orientation` | `vertical` = billboard facing the camera · `ground` = floor plane receding to the horizon |
+| `lit` | `true` = shaded by scene lights · `false` = full-bright (sky, glow overlays) |
+| `scale`, `offsetX/Y` | size and world position (px) |
+
+Parallax is perspective: a layer at `depth` shifts/scales by `D / (D + depth)`, where `D` = camera distance (`focalDistance(canvas, fov)` ≈ 742px at 960×540/40°).
+
+| depth | reads as | typical use |
+|---|---|---|
+| −400…−100 | in front of the focal plane | foreground occluders, grass fringe (blurs with DOF) |
+| 0 | focal plane | the ground the player walks on, hero props |
+| +100…+300 | midground | trees, facades, pillars |
+| +400…+800 | far | mountains, skyline, sky (scale up to compensate) |
+
+v1 files (`factorX/factorY`) migrate automatically on open: `depth = D·(1 − factorX)`.
+
+## Editor
+
+- **Camera**: drag = pan · wheel = dolly zoom (40%–400%) · right-drag / Alt-drag = orbit · `R` = reframe · space = play camera path (sweep / orbit / dolly)
+- **Effects**: depth-of-field (focus + aperture), fog, ambient + directional sun — per scene, in the inspector when nothing is selected
+- **Undo/redo**: full history (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), slider drags coalesce into one step
+- **Export**: `scene.json` (embedded base64) **or** a zip with `scene.json` + `assets/*.png` — the files are really in there
+- **Autosave**: localStorage + IndexedDB, v1 saves migrate silently
 
 ## Tech decisions
 
 | Choice | Why | Why not the alternative |
 |---|---|---|
-| React 19 + TS + Vite | Mainstream stack, component model fits panel tools | Vue is fine too — React simply has more jobs |
-| Tailwind v3.4 + shadcn/ui | Professional dark UI fast | Hand-written CSS is slow and ugly |
-| **Hand-rolled Canvas 2D render loop** | Each layer is `drawImage + offset` — every line explainable in an interview | PixiJS/Three.js do exactly the work you want to understand |
-| Zustand | An editor is a single-document state tree; Zustand fits in ~10 lines | Redux too heavy, Context too slow |
-| localStorage + IndexedDB | Pure frontend, zero backend, zero accounts | A backend is a liability for a v1 tool |
+| React 19 + TS + Vite | Mainstream stack, component model fits panel tools | — |
+| **three.js (plain, no R3F)** | Real perspective camera/lights/DOF; the render loop stays imperative and matches the exported runtime | Canvas 2D can't do perspective; r3f adds weight for zero gain here |
+| Electron (sandboxed + preload IPC) | Real desktop app: native dialogs, project files, installer | The old bat+Chrome `--app` wrapper was a browser in a trench coat |
+| Zustand + snapshot history | Editor = single-document state tree; snapshots make undo/redo ~40 lines | Command pattern would touch every action |
+| localStorage + IndexedDB | Local-first, zero backend | A backend is a liability |
 
-## The whole engine is one multiply
-
-```js
-screenX = layer.offsetX - camera.x * layer.factorX
-screenY = layer.offsetY - camera.y * layer.factorY
-ctx.drawImage(layer.bitmap, screenX, screenY, w * layer.scale, h * layer.scale)
-```
-
-| factor | meaning | typical use |
-|---|---|---|
-| 0.00 | locked to screen | sky, HUD |
-| 0.05–0.20 | far away | mountains, skyline |
-| 0.30–0.50 | midground | trees, buildings |
-| 0.70–0.90 | near | bushes, rails |
-| 1.00 | glued to camera plane | the ground the player walks on |
-| >1.00 | faster than camera | foreground occluders |
-
-Render-loop notes: `requestAnimationFrame` driven, paused when off-screen (IntersectionObserver); `imageSmoothingEnabled = false` + `image-rendering: pixelated` (non-negotiable); DPR-aware backing store; each layer decoded once via `createImageBitmap` — the render loop never decodes.
-
-Pure-function core (`computeScreenPos`, `serializeScene`, `migrateScene`) lives in `src/core/` with vitest coverage — no React dependencies.
-
-## scene.json format (v1, frozen)
-
-```json
-{
-  "version": 1,
-  "name": "Sunset Valley",
-  "canvas": { "width": 960, "height": 540 },
-  "camera": { "x": 480, "y": 270 },
-  "layers": [
-    {
-      "id": "sky", "name": "Sky", "src": "layers/valley-sky.png",
-      "factorX": 0.05, "factorY": 0.05,
-      "scale": 1, "offsetX": 0, "offsetY": 0,
-      "visible": true
-    }
-  ]
-}
-```
-
-- `layers[]` order = draw order, index 0 is farthest (back-to-front)
-- `src` is a relative path, or a base64 dataURL when exported with "Embed images"
-- factor ranges: 0.00–1.50 · scale 0.10–4.00 · offsets in integer pixels
-
-## Minimal runtime (~20 lines)
-
-```js
-export async function loadScene(url, canvas) {
-  const scene = await (await fetch(url)).json();
-  const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
-  canvas.width = scene.canvas.width;
-  canvas.height = scene.canvas.height;
-  const layers = await Promise.all(scene.layers.map(async (l) => {
-    const img = new Image();
-    img.src = l.src;
-    await img.decode();
-    return { ...l, img };
-  }));
-  const camera = { x: 0, y: 0 };              // drive this from your game
-  return function render() {
-    for (const l of layers) {
-      if (!l.visible) continue;
-      const x = l.offsetX - camera.x * l.factorX;
-      const y = l.offsetY - camera.y * l.factorY;
-      ctx.drawImage(l.img, x, y, l.img.width * l.scale, l.img.height * l.scale);
-    }
-  };
-}
-```
-
-Engine recipes (Phaser `setScrollFactor`, Godot `ParallaxLayer.motion_scale = 1 − factor`) are on the `/guide` page.
+Engine core (`src/core/`): `stage3d.ts` (three.js scene), `textures.ts` (NearestFilter texture cache), `cameraPaths.ts` (pure, tested), `scene.ts` (v1↔v2 migration + runtime snippet), `types.ts` (schema v2). No React dependencies, vitest-covered.
 
 ## Project layout
 
 ```
 src/
-  core/          pure functions — parallax math, scene (de)serialization, storage, placeholder art
-  store/         zustand stores (scene document, toasts)
-  components/    StageCanvas (shared render loop), editor panels, ui/ primitives
+  core/          engine + pure functions — stage3d, camera paths, scene (de)serialization, zip export, platform seam
+  store/         zustand stores (scene document + undo history, project file, toasts)
+  components/    StageCanvas3D (shared render loop), editor panels, ui/ primitives
   pages/         / /editor /guide /gallery
+electron/        main process (IPC, dialogs, recent files) + preload bridge
 ```
 
 ## Assets
 
-Demo scenes currently use **programmatically generated placeholder layers** (seeded, deterministic — see `src/core/placeholder.ts`). Drop real pixel art into `public/layers/` and swap the `src` fields — the schema doesn't change.
+Demo scenes use **programmatically generated placeholder layers** (seeded, deterministic — see `src/core/placeholder.ts`): each theme is a true 2.5D set with a ground plane, staggered billboards and per-theme lighting. Drop real pixel art in and tune depths — the schema doesn't change.
 
 ## License
 

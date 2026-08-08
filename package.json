@@ -1,14 +1,65 @@
 {
   "name": "pixelstage",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "2.5D pixel parallax scene editor — HD-2D for the rest of us",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "electron:dev": "npm run build && electron .",
+    "dist": "npm run build && electron-builder --win",
+    "dist:portable": "npm run build && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.pixelstage.app",
+    "productName": "PixelStage",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "assets/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/pixelstage.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "PixelStage",
+      "artifactName": "PixelStage-Setup-${version}.exe"
+    },
+    "fileAssociations": [
+      {
+        "ext": "pixelstage.json",
+        "name": "PixelStage Scene",
+        "role": "Editor"
+      }
+    ],
+    "portable": {
+      "artifactName": "PixelStage-portable.exe"
+    },
+    "npmRebuild": false
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",
@@ -21,6 +72,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "fflate": "^0.8.3",
     "framer-motion": "^12.23.0",
     "idb-keyval": "^6.2.1",
     "lucide-react": "^0.525.0",
@@ -28,14 +80,18 @@
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3",
     "tailwind-merge": "^3.3.1",
+    "three": "^0.185.1",
     "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/three": "^0.185.3",
     "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.21",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.8.3",
