@@ -10,6 +10,9 @@ export type PathPreset = "sweep" | "orbit" | "dolly";
 
 export const PATH_PRESETS: PathPreset[] = ["sweep", "orbit", "dolly"];
 
+/** seconds per full loop — the WebM export records exactly one period */
+export const PATH_PERIOD: Record<PathPreset, number> = { sweep: 9, orbit: 12, dolly: 10 };
+
 export function cameraPath(
   preset: PathPreset,
   t: number,
@@ -28,7 +31,7 @@ export function cameraPath(
 
 /** Gentle Lissajous pan — the modernized version of the v1 auto-sweep. */
 function sweepPath(t: number, base: Camera3D, canvas: CanvasSize): Camera3D {
-  const period = 9;
+  const period = PATH_PERIOD.sweep;
   const w = (t * 2 * Math.PI) / period;
   const dx = Math.sin(w) * canvas.width * 0.08;
   const dy = Math.sin(w * 0.6) * canvas.height * 0.05;
@@ -41,7 +44,7 @@ function sweepPath(t: number, base: Camera3D, canvas: CanvasSize): Camera3D {
 
 /** Yaw around the target ±10° with a slight rise — the shot that sells HD-2D. */
 function orbitPath(t: number, base: Camera3D): Camera3D {
-  const period = 12;
+  const period = PATH_PERIOD.orbit;
   const w = (t * 2 * Math.PI) / period;
   const yaw = Math.sin(w) * (Math.PI / 18); // ±10°
   const lift = (Math.sin(w * 0.5 + 1) * 0.5 + 0.5) * base.position.z * 0.06;
@@ -62,7 +65,7 @@ function orbitPath(t: number, base: Camera3D): Camera3D {
 
 /** Slow push in/out ±15% of the base distance. */
 function dollyPath(t: number, base: Camera3D): Camera3D {
-  const period = 10;
+  const period = PATH_PERIOD.dolly;
   const w = (t * 2 * Math.PI) / period;
   const k = 1 + Math.sin(w) * 0.15;
   return {

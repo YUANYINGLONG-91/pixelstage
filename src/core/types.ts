@@ -22,6 +22,15 @@ export interface Layer {
   /** lit = shaded by scene lights · unlit = full-bright (sky, glow overlays) */
   lit: boolean;
   visible: boolean;
+  /** 0–1 opacity multiplier over the texture */
+  opacity: number;
+  /** mirror the texture horizontally / vertically */
+  flipX: boolean;
+  flipY: boolean;
+  /** in-plane spin, degrees (ground layers yaw around their near-edge pivot) */
+  rotation: number;
+  /** editor-only: locked layers can't be picked, dragged or nudged in the viewport */
+  locked: boolean;
 }
 
 export interface Camera3D {
@@ -59,6 +68,8 @@ export interface SceneFile {
   effects: RenderEffects;
   /** index 0 = farthest (drawn first, back-to-front) */
   layers: Layer[];
+  /** saved camera framings (editor convenience; absent in pre-bookmark files) */
+  bookmarks: Camera3D[];
 }
 
 export const SCENE_VERSION = 2 as const;
@@ -109,6 +120,11 @@ export function createLayer(partial: Partial<Layer> & { name: string; src: strin
     orientation: "vertical",
     lit: true,
     visible: true,
+    opacity: 1,
+    flipX: false,
+    flipY: false,
+    rotation: 0,
+    locked: false,
     ...partial,
   };
 }

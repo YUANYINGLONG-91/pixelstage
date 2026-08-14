@@ -38,6 +38,7 @@ interface Snapshot {
   effects: RenderEffects;
   layers: Layer[];
   selectedId: string | null;
+  selectedIds: string[];
 }
 
 interface HistoryEntry {
@@ -55,7 +56,12 @@ interface SceneState {
   effects: RenderEffects;
   /** index 0 = farthest (drawn first); the panel displays this reversed */
   layers: Layer[];
+  /** primary selection (drives the Inspector); always a member of selectedIds */
   selectedId: string | null;
+  /** full multi-selection (viewport drags & nudges affect all of these) */
+  selectedIds: string[];
+  /** saved camera framings, persisted into scene.json (not undoable) */
+  bookmarks: Camera3D[];
   playing: boolean;
   pathPreset: PathPreset;
   /** current project file path (Electron); null = never saved to disk */
@@ -74,18 +80,34 @@ interface SceneState {
   resetCamera: () => void;
   setEffects: (patch: EffectsPatch, opts?: { coalesceKey?: string }) => void;
   setPathPreset: (p: PathPreset) => void;
-  selectLayer: (id: string | null) => void;
+  selectLayer: (id: string | null, opts?: { additive?: boolean }) => void;
   setPlaying: (v: boolean) => void;
   togglePlaying: () => void;
   markSaved: (path: string | null) => void;
+
+  addBookmark: () => void;
+  removeBookmark: (index: number) => void;
+  applyBookmark: (index: number) => void;
 
   addFiles: (files: File[]) => Promise<ImportResult>;
   addLayer: (layer: Layer) => void;
   insertLayer: (layer: Layer, index: number) => void;
   removeLayer: (id: string) => { layer: Layer; index: number } | null;
+  /** multi-select delete: one history entry, clears the selection */
+  removeLayers: (ids: string[]) => void;
   reorderLayer: (id: string, to: number) => void;
   updateLayer: (id: string, patch: Partial<Layer>, opts?: { coalesceKey?: string }) => void;
+  /** one history entry for a patch across many layers; locked layers are skipped */
+  updateLayers: (
+    ids: string[],
+    patch: (l: Layer) => Partial<Layer>,
+    opts?: { coalesceKey?: string }
+  ) => void;
   duplicateLayer: (id: string) => void;
+  /** copy the selection to the internal clipboard; returns how many */
+  copySelection: () => number;
+  /** paste clipboard copies above the selection, nudged +16px per consecutive paste */
+  paste: () => void;
 
   loadDemo: (theme?: PlaceholderTheme) => void;
   resetScene: () => void;
@@ -101,8 +123,13 @@ function takeSnapshot(s: SceneState): Snapshot {
     effects: s.effects,
     layers: s.layers,
     selectedId: s.selectedId,
+    selectedIds: s.selectedIds,
   };
 }
+
+/** internal layer clipboard (module-level: survives undo, not persisted) */
+let layerClipboard: Layer[] = [];
+let pasteCount = 0;
 
 /**
  * Texture eviction is fire-and-forget via dynamic import: textures.ts pulls in
@@ -142,6 +169,8 @@ export const useSceneStore = create<SceneState>((set, get) => {
     effects: defaultEffects(),
     layers: [],
     selectedId: null,
+    selectedIds: [],
+    bookmarks: [],
     playing: false,
     pathPreset: "sweep",
     filePath: null,
@@ -212,12 +241,56 @@ export const useSceneStore = create<SceneState>((set, get) => {
 
     setPathPreset: (p) => set({ pathPreset: p }),
 
-    selectLayer: (id) => set({ selectedId: id }),
+    selectLayer: (id, opts) =>
+      set((s) => {
+        if (id === null) return { selectedId: null, selectedIds: [] };
+        if (opts?.additive) {
+          const has = s.selectedIds.includes(id);
+          const selectedIds = has ? s.selectedIds.filter((x) => x !== id) : [...s.selectedIds, id];
+          // removing the primary promotes the most recently added survivor
+          const selectedId = has
+            ? s.selectedId === id
+              ? (selectedIds[selectedIds.length - 1] ?? null)
+              : s.selectedId
+            : id;
+          return { selectedIds, selectedId };
+        }
+        return { selectedId: id, selectedIds: [id] };
+      }),
 
     setPlaying: (v) => set({ playing: v }),
     togglePlaying: () => set((s) => ({ playing: !s.playing })),
 
     markSaved: (path) => set({ dirty: false, filePath: path }),
+
+    addBookmark: () =>
+      set((s) => ({
+        bookmarks: [
+          ...s.bookmarks.slice(-23),
+          {
+            position: { ...s.camera.position },
+            target: { ...s.camera.target },
+            fov: s.camera.fov,
+          },
+        ],
+        dirty: true,
+      })),
+
+    removeBookmark: (index) =>
+      set((s) => ({ bookmarks: s.bookmarks.filter((_, i) => i !== index), dirty: true })),
+
+    applyBookmark: (index) => {
+      const b = get().bookmarks[index];
+      if (!b) return;
+      pushHistory("camera");
+      set({
+        camera: {
+          position: { ...b.position },
+          target: { ...b.target },
+          fov: b.fov,
+        },
+      });
+    },
 
     addFiles: async (files) => {
       let added = 0;
@@ -249,7 +322,7 @@ export const useSceneStore = create<SceneState>((set, get) => {
 
     addLayer: (layer) => {
       pushHistory("add-layer");
-      set((s) => ({ layers: [...s.layers, layer], selectedId: layer.id }));
+      set((s) => ({ layers: [...s.layers, layer], selectedId: layer.id, selectedIds: [layer.id] }));
     },
 
     insertLayer: (layer, index) => {
@@ -272,8 +345,25 @@ export const useSceneStore = create<SceneState>((set, get) => {
       set({
         layers: s.layers.filter((l) => l.id !== id),
         selectedId: s.selectedId === id ? null : s.selectedId,
+        selectedIds: s.selectedIds.filter((x) => x !== id),
       });
       return { layer: removed, index };
+    },
+
+    removeLayers: (ids) => {
+      const wanted = new Set(ids);
+      const s = get();
+      if (!s.layers.some((l) => wanted.has(l.id))) return;
+      pushHistory("remove-layers");
+      for (const id of ids) {
+        evictBitmap(id);
+        evictTextureLate(id);
+      }
+      set({
+        layers: s.layers.filter((l) => !wanted.has(l.id)),
+        selectedId: null,
+        selectedIds: [],
+      });
     },
 
     reorderLayer: (id, to) => {
@@ -295,6 +385,53 @@ export const useSceneStore = create<SceneState>((set, get) => {
       }));
     },
 
+    updateLayers: (ids, patch, opts) => {
+      const wanted = new Set(ids);
+      pushHistory("update-layers", opts?.coalesceKey);
+      set((s) => ({
+        layers: s.layers.map((l) =>
+          wanted.has(l.id) && !l.locked ? { ...l, ...patch(l), id: l.id } : l
+        ),
+      }));
+    },
+
+    copySelection: () => {
+      const s = get();
+      const wanted = new Set(s.selectedIds);
+      layerClipboard = s.layers.filter((l) => wanted.has(l.id)).map((l) => ({ ...l }));
+      pasteCount = 0;
+      return layerClipboard.length;
+    },
+
+    paste: () => {
+      if (!layerClipboard.length) return;
+      pasteCount++;
+      pushHistory("paste");
+      set((s) => {
+        const nudge = 16 * pasteCount;
+        const copies: Layer[] = layerClipboard.map((src) => ({
+          ...src,
+          id: crypto.randomUUID(),
+          name: `${src.name} copy`,
+          offsetX: src.offsetX + nudge,
+          offsetY: src.offsetY + nudge,
+          locked: false,
+        }));
+        // insert above the topmost clipboard source still present (else append)
+        const wanted = new Set(layerClipboard.map((c) => c.id));
+        let at = s.layers.length;
+        for (let i = s.layers.length - 1; i >= 0; i--) {
+          if (wanted.has(s.layers[i].id)) {
+            at = i + 1;
+            break;
+          }
+        }
+        const layers = [...s.layers];
+        layers.splice(at, 0, ...copies);
+        return { layers, selectedId: copies[0].id, selectedIds: copies.map((l) => l.id) };
+      });
+    },
+
     duplicateLayer: (id) => {
       pushHistory("duplicate-layer");
       set((s) => {
@@ -304,7 +441,7 @@ export const useSceneStore = create<SceneState>((set, get) => {
         const copy: Layer = { ...src, id: crypto.randomUUID(), name: `${src.name} copy` };
         const layers = [...s.layers];
         layers.splice(index + 1, 0, copy);
-        return { layers, selectedId: copy.id };
+        return { layers, selectedId: copy.id, selectedIds: [copy.id] };
       });
     },
 
@@ -320,6 +457,8 @@ export const useSceneStore = create<SceneState>((set, get) => {
         effects: scene.effects,
         layers: scene.layers,
         selectedId: null,
+        selectedIds: [],
+        bookmarks: [],
         filePath: null,
       });
     },
@@ -335,6 +474,8 @@ export const useSceneStore = create<SceneState>((set, get) => {
         effects: defaultEffects(),
         layers: [],
         selectedId: null,
+        selectedIds: [],
+        bookmarks: [],
         playing: false,
         filePath: null,
       });
@@ -342,7 +483,7 @@ export const useSceneStore = create<SceneState>((set, get) => {
 
     toJSON: () => {
       const s = get();
-      return serializeScene(s.name, s.canvasSize, s.camera, s.effects, s.layers);
+      return serializeScene(s.name, s.canvasSize, s.camera, s.effects, s.layers, s.bookmarks);
     },
 
     loadJSON: (raw) => {
@@ -357,6 +498,8 @@ export const useSceneStore = create<SceneState>((set, get) => {
         effects: scene.effects,
         layers: scene.layers,
         selectedId: null,
+        selectedIds: [],
+        bookmarks: scene.bookmarks,
       });
     },
   };

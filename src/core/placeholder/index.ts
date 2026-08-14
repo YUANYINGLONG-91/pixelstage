@@ -58,6 +58,7 @@ export function createPlaceholderScene(theme: PlaceholderTheme = "village"): Sce
     camera,
     effects: b.effects(),
     layers: b.layers(),
+    bookmarks: [],
   };
 }
 

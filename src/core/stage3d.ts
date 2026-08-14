@@ -6,6 +6,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { getTexture } from "./textures";
+import { getAlphaAt } from "./bitmaps";
 import type { Camera3D, CanvasSize, Layer, RenderEffects } from "./types";
 
 /**
@@ -31,6 +32,10 @@ interface MeshRecord {
   /** signature of fields that require a geometry/material rebuild */
   signature: string;
   layerId: string;
+  /** kept for picking (alpha-mask lookup is keyed by id + src) */
+  src: string;
+  /** amber selection outline, child of mesh (editor only) */
+  outline: THREE.LineSegments | null;
 }
 
 /** Film finishing, applied in display space after tone mapping. */
@@ -102,6 +107,8 @@ export class Stage3D {
   private readonly born = performance.now();
   private size: CanvasSize;
   private canvas: HTMLCanvasElement;
+  private raycaster = new THREE.Raycaster();
+  private selection = new Set<string>();
   onContextLost?: () => void;
 
   constructor(canvas: HTMLCanvasElement, size: CanvasSize) {
@@ -167,6 +174,7 @@ export class Stage3D {
         this.scene.add(rec.mesh);
       }
       this.positionMesh(rec.mesh, layer, tex);
+      this.syncOutline(rec, this.selection.has(layer.id));
     }
     for (const [id, rec] of this.meshes) {
       if (!seen.has(id)) {
@@ -260,6 +268,60 @@ export class Stage3D {
     this.scene.add(this.grid);
   }
 
+  /* --------------------------- editor interaction -------------------------- */
+
+  /** Mark layers as selected; each gets an always-on-top amber outline. */
+  setSelection(ids: string[]) {
+    const next = new Set(ids);
+    if (next.size === this.selection.size && [...next].every((i) => this.selection.has(i))) {
+      return;
+    }
+    this.selection = next;
+    for (const [id, rec] of this.meshes) this.syncOutline(rec, next.has(id));
+  }
+
+  /**
+   * Front-most layer whose texture is non-transparent at the picked pixel.
+   * nx/ny are NDC (-1..1). Transparent texels fall through to layers behind.
+   */
+  pickLayer(nx: number, ny: number): string | null {
+    this.raycaster.setFromCamera(new THREE.Vector2(nx, ny), this.camera);
+    const recs = [...this.meshes.values()];
+    const byMesh = new Map(recs.map((r) => [r.mesh, r] as const));
+    const hits = this.raycaster.intersectObjects([...byMesh.keys()], false);
+    for (const h of hits) {
+      const rec = byMesh.get(h.object as THREE.Mesh);
+      if (!rec || !h.uv) continue;
+      const a = getAlphaAt(rec.layerId, rec.src, h.uv.x, h.uv.y);
+      // null = bitmap not decoded yet (placeholder mesh) → treat as opaque
+      if (a === null || a > 10) return rec.layerId;
+    }
+    return null;
+  }
+
+  /**
+   * Intersect the pointer ray with a world-space plane (point + normal),
+   * for 1:1-feel layer dragging. Returns null when the ray is parallel.
+   */
+  rayPlane(
+    nx: number,
+    ny: number,
+    px: number,
+    py: number,
+    pz: number,
+    ax: number,
+    ay: number,
+    az: number
+  ): { x: number; y: number; z: number } | null {
+    this.raycaster.setFromCamera(new THREE.Vector2(nx, ny), this.camera);
+    const n = new THREE.Vector3(ax, ay, az).normalize();
+    const plane = new THREE.Plane(n, -n.dot(new THREE.Vector3(px, py, pz)));
+    const out = new THREE.Vector3();
+    return this.raycaster.ray.intersectPlane(plane, out)
+      ? { x: out.x, y: out.y, z: out.z }
+      : null;
+  }
+
   render() {
     const t = (performance.now() - this.born) / 1000;
     if (this.grade) this.grade.uniforms.time.value = t;
@@ -350,7 +412,7 @@ export class Stage3D {
       mesh.receiveShadow = true;
       // castShadow decided per-frame in positionMesh (depth-dependent)
     }
-    return { mesh, signature, layerId: layer.id };
+    return { mesh, signature, layerId: layer.id, src: layer.src, outline: null };
   }
 
   private positionMesh(
@@ -361,6 +423,10 @@ export class Stage3D {
     const w = (tex?.width ?? this.size.width) * layer.scale;
     const h = (tex?.height ?? this.size.height) * layer.scale;
     const H = this.size.height;
+    // appearance props that don't need a rebuild — applied every frame
+    (mesh.material as THREE.Material).opacity = layer.opacity;
+    mesh.scale.set(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1, 1);
+    mesh.rotation.z = (layer.rotation * Math.PI) / 180;
     if (layer.orientation === "ground") {
       mesh.position.set(layer.offsetX + w / 2, H - layer.offsetY, -layer.depth);
     } else {
@@ -369,6 +435,32 @@ export class Stage3D {
       // between the sun and the ground's far half — if they cast, their shadow
       // blankets the entire floor in black.
       mesh.castShadow = layer.lit && Math.abs(layer.depth) <= 120;
+    }
+  }
+
+  private syncOutline(rec: MeshRecord, selected: boolean) {
+    if (selected === (rec.outline !== null)) return;
+    if (selected) {
+      // EdgesGeometry of a 1-segment plane = its 4 borders; inherits the
+      // ground pivot translate and follows flip/rotation as a child
+      const geo = new THREE.EdgesGeometry(rec.mesh.geometry);
+      const mat = new THREE.LineBasicMaterial({
+        color: 0xffd98a,
+        depthTest: false,
+        transparent: true,
+        opacity: 1,
+      });
+      const line = new THREE.LineSegments(geo, mat);
+      line.renderOrder = 999;
+      // slight outset so the stroke doesn't z-fight the sprite's own border pixels
+      line.scale.set(1.015, 1.015, 1);
+      rec.mesh.add(line);
+      rec.outline = line;
+    } else if (rec.outline) {
+      rec.mesh.remove(rec.outline);
+      rec.outline.geometry.dispose();
+      (rec.outline.material as THREE.Material).dispose();
+      rec.outline = null;
     }
   }
 

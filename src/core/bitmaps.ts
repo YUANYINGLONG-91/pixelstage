@@ -51,15 +51,63 @@ export function peekBitmap(layerId: string, src: string): Entry | null {
   return hit && hit.src === src ? hit : null;
 }
 
+/* --------------------- alpha masks (viewport picking) --------------------- */
+
+interface MaskEntry {
+  src: string;
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
+}
+
+const masks = new Map<string, MaskEntry>();
+
+/**
+ * Per-pixel alpha lookup for viewport picking. Lazily rasterizes the cached
+ * bitmap once and keeps the RGBA buffer. uv space matches the baked flipY
+ * bitmap rows (v=0 → row 0), which is exactly what the shader samples with
+ * texture.flipY=false. Returns null when the bitmap isn't decoded yet —
+ * callers treat that as opaque (the mesh is a wireframe placeholder anyway).
+ */
+export function getAlphaAt(layerId: string, src: string, u: number, v: number): number | null {
+  let m = masks.get(layerId);
+  if (m && m.src !== src) {
+    masks.delete(layerId);
+    m = undefined;
+  }
+  if (!m) {
+    const bmp = peekBitmap(layerId, src);
+    if (!bmp) return null;
+    const c = document.createElement("canvas");
+    c.width = bmp.width;
+    c.height = bmp.height;
+    const g = c.getContext("2d", { willReadFrequently: true });
+    if (!g) return null;
+    g.drawImage(bmp.bitmap, 0, 0);
+    m = {
+      src,
+      data: g.getImageData(0, 0, bmp.width, bmp.height).data,
+      width: bmp.width,
+      height: bmp.height,
+    };
+    masks.set(layerId, m);
+  }
+  const x = Math.min(m.width - 1, Math.max(0, Math.floor(u * m.width)));
+  const y = Math.min(m.height - 1, Math.max(0, Math.floor(v * m.height)));
+  return m.data[(y * m.width + x) * 4 + 3];
+}
+
 export function evictBitmap(layerId: string) {
   const hit = cache.get(layerId);
   if (hit) {
     hit.bitmap.close();
     cache.delete(layerId);
   }
+  masks.delete(layerId);
 }
 
 export function clearBitmaps() {
   for (const e of cache.values()) e.bitmap.close();
   cache.clear();
+  masks.clear();
 }

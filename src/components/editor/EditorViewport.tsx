@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Crosshair, Grid3X3 } from "lucide-react";
+import { Bookmark, BookmarkPlus, Crosshair, Grid3X3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import StageCanvas3D from "@/components/StageCanvas3DLazy";
@@ -35,6 +35,13 @@ export default function EditorViewport({
     setPathPreset,
     resetCamera,
     loadDemo,
+    selectedIds,
+    selectLayer,
+    updateLayer,
+    bookmarks,
+    addBookmark,
+    removeBookmark,
+    applyBookmark,
   } = useSceneStore();
   const boxRef = useRef<HTMLDivElement>(null);
   const [stageW, setStageW] = useState(0);
@@ -100,6 +107,11 @@ export default function EditorViewport({
                 editorMode
                 pathPreset={pathPreset}
                 grid={{ visible: gridVisible, step: 40 }}
+                selectedIds={selectedIds}
+                onPickLayer={(id, opts) => selectLayer(id, opts)}
+                onLayerTransform={(id, patch, key) =>
+                  updateLayer(id, patch, { coalesceKey: key })
+                }
                 onDraggingChange={setDragging}
               />
             </div>
@@ -128,6 +140,42 @@ export default function EditorViewport({
               <span className="text-teal">{Math.round(camera.fov)}°</span> · {t("term.zoom")}{" "}
               <span className="text-teal">{zoomPct}%</span>
             </div>
+
+            {/* HUD: camera bookmarks */}
+            {!empty && (
+              <div className="absolute right-2 top-2 flex items-center gap-1">
+                {bookmarks.map((_, i) => (
+                  <div
+                    key={i}
+                    className="group relative flex items-center rounded-sm border border-border bg-bg-2/85 font-mono text-[10px]"
+                  >
+                    <button
+                      onClick={() => applyBookmark(i)}
+                      className="flex items-center gap-1 px-1.5 py-1 text-text-3 transition-colors hover:text-amber"
+                      aria-label={`${t("vp.gotoBookmark")} ${i + 1}`}
+                      title={t("vp.gotoBookmark")}
+                    >
+                      <Bookmark size={10} /> {i + 1}
+                    </button>
+                    <button
+                      onClick={() => removeBookmark(i)}
+                      className="absolute -right-1.5 -top-1.5 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-border bg-bg-2 text-text-3 hover:text-danger group-hover:flex"
+                      aria-label={`${t("vp.delBookmark")} ${i + 1}`}
+                    >
+                      <X size={8} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={addBookmark}
+                  className="flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-1.5 py-1 font-mono text-[10px] text-text-3 transition-colors hover:text-amber"
+                  aria-label={t("vp.addBookmark")}
+                  title={t("vp.addBookmark")}
+                >
+                  <BookmarkPlus size={10} />
+                </button>
+              </div>
+            )}
 
             {/* HUD: path preset + play + grid + reset */}
             <div className="absolute bottom-2 right-2 flex items-center gap-2">

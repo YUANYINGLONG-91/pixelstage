@@ -123,6 +123,28 @@ export default function EditorPage() {
       }
       if (typing) return;
 
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
+        const n = s.copySelection();
+        if (n) {
+          e.preventDefault();
+          toast(`${n} ${t("layers.copied")}`, { variant: "teal" });
+        }
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        s.paste();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        // select all (last layer = front-most becomes the primary)
+        const ids = s.layers.map((l) => l.id);
+        s.selectLayer(null);
+        for (const id of ids) s.selectLayer(id, { additive: true });
+        return;
+      }
+
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
         if (e.shiftKey) s.redo();
@@ -146,12 +168,67 @@ export default function EditorPage() {
           break;
         case "Delete":
         case "Backspace":
-          if (s.selectedId) s.removeLayer(s.selectedId);
+          if (s.selectedIds.length > 1) {
+            s.removeLayers(s.selectedIds);
+            toast(t("layers.deleted"), {
+              variant: "danger",
+              actionLabel: t("layers.undo"),
+              duration: 4000,
+              onAction: () => useSceneStore.getState().undo(),
+            });
+          } else if (s.selectedId) {
+            s.removeLayer(s.selectedId);
+          }
           break;
         case "h":
-        case "H": {
-          const l = s.layers.find((x) => x.id === s.selectedId);
-          if (l) s.updateLayer(l.id, { visible: !l.visible });
+        case "H":
+          if (s.selectedIds.length) {
+            s.updateLayers(s.selectedIds, (l) => ({ visible: !l.visible }));
+          }
+          break;
+        case "l":
+        case "L":
+          // lock toggle: updateLayers skips locked layers, so toggle directly
+          for (const id of s.selectedIds) {
+            const l = s.layers.find((x) => x.id === id);
+            if (l) s.updateLayer(id, { locked: !l.locked });
+          }
+          break;
+        case "x":
+        case "X":
+          if (s.selectedIds.length) s.updateLayers(s.selectedIds, (l) => ({ flipX: !l.flipX }));
+          break;
+        case "y":
+        case "Y":
+          if (s.selectedIds.length) s.updateLayers(s.selectedIds, (l) => ({ flipY: !l.flipY }));
+          break;
+        case "[":
+        case "{":
+        case "]":
+        case "}": {
+          if (!s.selectedIds.length) return;
+          e.preventDefault();
+          const d = (e.key === "]" || e.key === "}" ? 1 : -1) * (e.shiftKey ? 50 : 10);
+          s.updateLayers(
+            s.selectedIds,
+            (l) => ({ depth: Math.min(800, Math.max(-400, l.depth + d)) }),
+            { coalesceKey: "nudge:depth" }
+          );
+          break;
+        }
+        case "-":
+        case "_":
+        case "=":
+        case "+": {
+          if (!s.selectedIds.length) return;
+          e.preventDefault();
+          const up = e.key === "=" || e.key === "+";
+          const d = (up ? 1 : -1) * (e.shiftKey ? 0.25 : 0.05);
+          s.updateLayers(
+            s.selectedIds,
+            (l) => ({ scale: Math.min(4, Math.max(0.1, Math.round((l.scale + d) * 100) / 100)) }),
+            { coalesceKey: "nudge:scale" }
+          );
           break;
         }
         case "Escape":
@@ -164,13 +241,14 @@ export default function EditorPage() {
         case "ArrowDown":
         case "ArrowLeft":
         case "ArrowRight": {
-          const l = s.layers.find((x) => x.id === s.selectedId);
-          if (!l) return;
+          if (!s.selectedIds.length) return;
           e.preventDefault();
           const step = e.shiftKey ? 10 : 1;
           const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
           const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
-          s.updateLayer(l.id, { offsetX: l.offsetX + dx, offsetY: l.offsetY + dy });
+          s.updateLayers(s.selectedIds, (l) => ({ offsetX: l.offsetX + dx, offsetY: l.offsetY + dy }), {
+            coalesceKey: "nudge:xy",
+          });
           break;
         }
       }

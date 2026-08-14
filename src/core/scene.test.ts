@@ -89,6 +89,33 @@ describe("v2 round-trip", () => {
     expect(m.layers[0].lit).toBe(true);
     expect(m.layers[0].visible).toBe(true);
   });
+
+  it("fills defaults for the v2.1 appearance/editor fields", () => {
+    const m = migrateScene({ version: 2, layers: [{ src: "a.png" }] });
+    expect(m.layers[0].opacity).toBe(1);
+    expect(m.layers[0].flipX).toBe(false);
+    expect(m.layers[0].flipY).toBe(false);
+    expect(m.layers[0].rotation).toBe(0);
+    expect(m.layers[0].locked).toBe(false);
+    expect(m.bookmarks).toEqual([]);
+  });
+
+  it("preserves appearance fields and bookmarks through migration", () => {
+    const cam = defaultCamera(canvas, 50);
+    const m = migrateScene({
+      version: 2,
+      canvas,
+      layers: [
+        { src: "a.png", opacity: 0.5, flipX: true, rotation: 15, locked: true },
+      ],
+      bookmarks: [cam],
+    });
+    expect(m.layers[0].opacity).toBe(0.5);
+    expect(m.layers[0].flipX).toBe(true);
+    expect(m.layers[0].rotation).toBe(15);
+    expect(m.layers[0].locked).toBe(true);
+    expect(m.bookmarks).toEqual([cam]);
+  });
 });
 
 describe("junk rejection", () => {

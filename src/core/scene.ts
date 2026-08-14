@@ -16,7 +16,8 @@ export function serializeScene(
   canvas: { width: number; height: number },
   camera: Camera3D,
   effects: RenderEffects,
-  layers: Layer[]
+  layers: Layer[],
+  bookmarks: Camera3D[] = []
 ): SceneFile {
   return {
     version: SCENE_VERSION,
@@ -29,6 +30,11 @@ export function serializeScene(
     },
     effects: JSON.parse(JSON.stringify(effects)) as RenderEffects,
     layers: layers.map((l) => ({ ...l })),
+    bookmarks: bookmarks.map((b) => ({
+      position: { ...b.position },
+      target: { ...b.target },
+      fov: b.fov,
+    })),
   };
 }
 
@@ -72,6 +78,11 @@ export function migrateScene(raw: unknown): SceneFile {
         orientation: "vertical" as const,
         lit: true,
         visible: v1.visible !== false,
+        opacity: 1,
+        flipX: false,
+        flipY: false,
+        rotation: 0,
+        locked: false,
       };
     }
     const layer = l as Partial<Layer>;
@@ -86,6 +97,11 @@ export function migrateScene(raw: unknown): SceneFile {
       orientation: layer.orientation === "ground" ? "ground" : "vertical",
       lit: layer.lit !== false,
       visible: layer.visible !== false,
+      opacity: num(layer.opacity, 1),
+      flipX: layer.flipX === true,
+      flipY: layer.flipY === true,
+      rotation: num(layer.rotation, 0),
+      locked: layer.locked === true,
     };
   });
 
@@ -102,22 +118,12 @@ export function migrateScene(raw: unknown): SceneFile {
       fov: base.fov,
     };
   } else {
-    const c = (s.camera ?? {}) as Partial<Camera3D>;
-    const base = defaultCamera(canvas);
-    camera = {
-      position: {
-        x: num(c.position?.x, base.position.x),
-        y: num(c.position?.y, base.position.y),
-        z: num(c.position?.z, base.position.z),
-      },
-      target: {
-        x: num(c.target?.x, base.target.x),
-        y: num(c.target?.y, base.target.y),
-        z: num(c.target?.z, base.target.z),
-      },
-      fov: num(c.fov, base.fov),
-    };
+    camera = normCamera(s.camera, canvas);
   }
+
+  const bookmarks: Camera3D[] = Array.isArray(s.bookmarks)
+    ? (s.bookmarks as unknown[]).slice(0, 24).map((b) => normCamera(b, canvas))
+    : [];
 
   const fx = ((s.effects ?? {}) as Partial<RenderEffects>) ?? {};
   const def = defaultEffects();
@@ -171,6 +177,26 @@ export function migrateScene(raw: unknown): SceneFile {
     camera,
     effects,
     layers,
+    bookmarks,
+  };
+}
+
+/** Fill a partial camera from a saved file with default framing values. */
+function normCamera(raw: unknown, canvas: { width: number; height: number }): Camera3D {
+  const c = (raw ?? {}) as Partial<Camera3D>;
+  const base = defaultCamera(canvas);
+  return {
+    position: {
+      x: num(c.position?.x, base.position.x),
+      y: num(c.position?.y, base.position.y),
+      z: num(c.position?.z, base.position.z),
+    },
+    target: {
+      x: num(c.target?.x, base.target.x),
+      y: num(c.target?.y, base.target.y),
+      z: num(c.target?.z, base.target.z),
+    },
+    fov: num(c.fov, base.fov),
   };
 }
 
@@ -214,7 +240,10 @@ for (const l of scene.layers) {
   const mat = l.lit === false
     ? new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.01, side: THREE.DoubleSide })
     : new THREE.MeshLambertMaterial({ map: tex, transparent: true, alphaTest: 0.01, side: THREE.DoubleSide });
+  mat.opacity = l.opacity ?? 1;
   const mesh = new THREE.Mesh(geo, mat);
+  mesh.scale.set(l.flipX ? -1 : 1, l.flipY ? -1 : 1, 1);
+  mesh.rotation.z = ((l.rotation ?? 0) * Math.PI) / 180; // in-plane spin (ground: yaw)
   const w = geo.parameters.width, h = geo.parameters.height;
   if (l.orientation === "ground") {
     geo.translate(0, -h / 2, 0);               // pivot = near edge

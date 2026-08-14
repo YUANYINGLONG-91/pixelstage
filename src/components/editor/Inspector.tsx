@@ -1,10 +1,11 @@
-import { Copy, Trash2 } from "lucide-react";
+import { AlignCenterHorizontal, AlignCenterVertical, Copy, FlipHorizontal2, FlipVertical2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NumberField from "@/components/ui/number-field";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { focalDistance } from "@/core/types";
+import { peekBitmap } from "@/core/bitmaps";
 import type { Layer } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
 import { useT } from "@/i18n";
@@ -27,12 +28,23 @@ export default function Inspector() {
 
 function LayerInspector({ layer }: { layer: Layer }) {
   const t = useT();
-  const { canvasSize, camera, updateLayer, duplicateLayer, removeLayer } = useSceneStore();
+  const { canvasSize, camera, updateLayer, duplicateLayer, removeLayer, selectedIds } =
+    useSceneStore();
   const D = focalDistance(canvasSize, camera.fov);
   const parallax = D / (D + layer.depth);
+  const bmp = peekBitmap(layer.id, layer.src);
 
   const set = (patch: Partial<Layer>, coalesceKey?: string) =>
     updateLayer(layer.id, patch, coalesceKey ? { coalesceKey } : undefined);
+
+  const centerH = () => {
+    if (!bmp) return;
+    set({ offsetX: Math.round((canvasSize.width - bmp.width * layer.scale) / 2) });
+  };
+  const centerV = () => {
+    if (!bmp || layer.orientation === "ground") return;
+    set({ offsetY: Math.round((canvasSize.height - bmp.height * layer.scale) / 2) });
+  };
 
   const onDelete = () => {
     if (!removeLayer(layer.id)) return;
@@ -50,9 +62,16 @@ function LayerInspector({ layer }: { layer: Layer }) {
         <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-3">
           {t("insp.title")}
         </span>
-        <span className="rounded-sm border border-amber/40 bg-amber-dim px-1.5 py-0.5 font-mono text-[10px] text-amber">
-          {layer.name}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {selectedIds.length > 1 && (
+            <span className="rounded-sm border border-teal/40 bg-teal-dim px-1.5 py-0.5 font-mono text-[10px] text-teal">
+              ×{selectedIds.length}
+            </span>
+          )}
+          <span className="rounded-sm border border-amber/40 bg-amber-dim px-1.5 py-0.5 font-mono text-[10px] text-amber">
+            {layer.name}
+          </span>
+        </div>
       </div>
 
       {/* preview strip */}
@@ -69,13 +88,21 @@ function LayerInspector({ layer }: { layer: Layer }) {
         />
       </Field>
 
-      {/* visibility */}
+      {/* visibility & lock */}
       <div className="flex items-center justify-between">
         <span className="font-mono text-[11px] text-text-3">{t("insp.visible")}</span>
         <Switch
           checked={layer.visible}
           onCheckedChange={(v) => set({ visible: v })}
           aria-label="Toggle visibility"
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[11px] text-text-3">{t("insp.locked")}</span>
+        <Switch
+          checked={layer.locked}
+          onCheckedChange={(v) => set({ locked: v })}
+          aria-label="Toggle locked"
         />
       </div>
 
@@ -146,6 +173,28 @@ function LayerInspector({ layer }: { layer: Layer }) {
           />
         </div>
 
+        {/* opacity */}
+        <div className="mt-3 flex items-center gap-2">
+          <span className="w-14 font-mono text-[11px] text-text-2">{t("insp.opacity")}</span>
+          <Slider
+            min={0}
+            max={1}
+            step={0.05}
+            value={[layer.opacity]}
+            onValueChange={([v]) => set({ opacity: v }, `${layer.id}:opacity`)}
+            className="flex-1"
+          />
+          <NumberField
+            min={0}
+            max={1}
+            step={0.05}
+            precision={2}
+            value={layer.opacity}
+            onCommit={(v) => set({ opacity: v }, `${layer.id}:opacity`)}
+            ariaLabel="Opacity"
+          />
+        </div>
+
         {/* the product's thesis made visible: live formula readout */}
         <div className="mt-2 space-y-1 rounded border border-border bg-bg-1 p-2 font-mono text-[11px] leading-relaxed">
           <p className="text-text-2">
@@ -203,11 +252,82 @@ function LayerInspector({ layer }: { layer: Layer }) {
           />
         </div>
 
+        {/* rotation */}
+        <div className="mt-3 flex items-center gap-2">
+          <span className="w-14 font-mono text-[11px] text-text-2">{t("insp.rotation")}</span>
+          <Slider
+            min={-180}
+            max={180}
+            step={1}
+            value={[layer.rotation]}
+            onValueChange={([v]) => set({ rotation: v }, `${layer.id}:rotation`)}
+            className="flex-1"
+          />
+          <NumberField
+            min={-180}
+            max={180}
+            step={1}
+            value={layer.rotation}
+            onCommit={(v) => set({ rotation: v }, `${layer.id}:rotation`)}
+            ariaLabel="Rotation"
+          />
+        </div>
+
+        {/* flip + align */}
+        <div className="mt-2 flex flex-wrap gap-1.5 pl-14">
+          <button
+            onClick={() => set({ flipX: !layer.flipX })}
+            className={cn(
+              "flex items-center gap-1 rounded-sm border px-2 py-0.5 font-mono text-[10px]",
+              layer.flipX
+                ? "border-amber/50 bg-amber-dim text-amber"
+                : "border-border bg-bg-3 text-text-2 hover:border-border-strong hover:text-amber"
+            )}
+            aria-label={t("insp.flipX")}
+            aria-pressed={layer.flipX}
+          >
+            <FlipHorizontal2 size={11} /> {t("insp.flipX")}
+          </button>
+          <button
+            onClick={() => set({ flipY: !layer.flipY })}
+            className={cn(
+              "flex items-center gap-1 rounded-sm border px-2 py-0.5 font-mono text-[10px]",
+              layer.flipY
+                ? "border-amber/50 bg-amber-dim text-amber"
+                : "border-border bg-bg-3 text-text-2 hover:border-border-strong hover:text-amber"
+            )}
+            aria-label={t("insp.flipY")}
+            aria-pressed={layer.flipY}
+          >
+            <FlipVertical2 size={11} /> {t("insp.flipY")}
+          </button>
+          <button
+            onClick={centerH}
+            disabled={!bmp}
+            className="flex items-center gap-1 rounded-sm border border-border bg-bg-3 px-2 py-0.5 font-mono text-[10px] text-text-2 hover:border-border-strong hover:text-amber disabled:opacity-40"
+            aria-label={t("insp.centerH")}
+            title={t("insp.centerH")}
+          >
+            <AlignCenterHorizontal size={11} /> H
+          </button>
+          <button
+            onClick={centerV}
+            disabled={!bmp || layer.orientation === "ground"}
+            className="flex items-center gap-1 rounded-sm border border-border bg-bg-3 px-2 py-0.5 font-mono text-[10px] text-text-2 hover:border-border-strong hover:text-amber disabled:opacity-40"
+            aria-label={t("insp.centerV")}
+            title={t("insp.centerV")}
+          >
+            <AlignCenterVertical size={11} /> V
+          </button>
+        </div>
+
         <Button
           variant="ghost"
           size="sm"
           className="mt-2 font-mono text-[11px]"
-          onClick={() => set({ scale: 1, offsetX: 0, offsetY: 0 })}
+          onClick={() =>
+            set({ scale: 1, offsetX: 0, offsetY: 0, rotation: 0, flipX: false, flipY: false })
+          }
         >
           {t("insp.resetTransform")}
         </Button>

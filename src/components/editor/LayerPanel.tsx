@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { Eye, EyeOff, GripVertical, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, GripVertical, Lock, LockOpen, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Layer } from "@/core/types";
@@ -105,12 +105,13 @@ export default function LayerPanel() {
 
 function LayerRow({ layer }: { layer: Layer }) {
   const t = useT();
-  const { selectedId, selectLayer, updateLayer, removeLayer } = useSceneStore();
+  const { selectedId, selectedIds, selectLayer, updateLayer, removeLayer } = useSceneStore();
   const dragControls = useDragControls();
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(layer.name);
   const [shake, setShake] = useState(false);
-  const selected = selectedId === layer.id;
+  const selected = selectedIds.includes(layer.id);
+  const primary = selectedId === layer.id;
 
   const commitRename = () => {
     if (!draft.trim()) {
@@ -139,11 +140,17 @@ function LayerRow({ layer }: { layer: Layer }) {
       dragControls={dragControls}
       className={cn(
         "group flex h-14 items-center gap-2 rounded border bg-bg-1 px-2 transition-colors",
-        selected ? "border-l-2 border-l-amber border-border-strong bg-amber-dim" : "border-border",
+        primary
+          ? "border-l-2 border-l-amber border-border-strong bg-amber-dim"
+          : selected
+            ? "border-l-2 border-l-teal border-border-strong bg-teal-dim"
+            : "border-border",
         !layer.visible && "opacity-55",
         shake && "border-danger"
       )}
-      onClick={() => selectLayer(layer.id)}
+      onClick={(e) =>
+        selectLayer(layer.id, { additive: e.shiftKey || e.ctrlKey || e.metaKey })
+      }
     >
       <button
         className="cursor-grab touch-none text-text-3 hover:text-text-1 active:cursor-grabbing"
@@ -191,34 +198,48 @@ function LayerRow({ layer }: { layer: Layer }) {
         )}
         <p className="font-mono text-[10px] text-text-3">
           z <span className="text-teal">{layer.depth}</span>
+          {layer.locked && <Lock size={9} className="ml-1 inline text-amber" />}
         </p>
       </div>
 
       <div
         className={cn(
           "flex flex-col gap-0.5 transition-opacity",
-          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          selected || layer.locked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}
       >
         <button
-          className="rounded p-1 text-text-2 hover:text-text-1"
+          className="rounded p-0.5 text-text-2 hover:text-text-1"
           onClick={(e) => {
             e.stopPropagation();
             updateLayer(layer.id, { visible: !layer.visible });
           }}
           aria-label={layer.visible ? "Hide layer" : "Show layer"}
         >
-          {layer.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-text-3" />}
+          {layer.visible ? <Eye size={13} /> : <EyeOff size={13} className="text-text-3" />}
         </button>
         <button
-          className="rounded p-1 text-text-2 hover:text-danger"
+          className={cn(
+            "rounded p-0.5",
+            layer.locked ? "text-amber hover:text-text-1" : "text-text-2 hover:text-text-1"
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            updateLayer(layer.id, { locked: !layer.locked });
+          }}
+          aria-label={layer.locked ? "Unlock layer" : "Lock layer"}
+        >
+          {layer.locked ? <Lock size={13} /> : <LockOpen size={13} />}
+        </button>
+        <button
+          className="rounded p-0.5 text-text-2 hover:text-danger"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
           aria-label="Delete layer"
         >
-          <Trash2 size={14} />
+          <Trash2 size={13} />
         </button>
       </div>
     </Reorder.Item>

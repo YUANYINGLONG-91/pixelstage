@@ -63,11 +63,18 @@
 
 **HUD chips** (absolute, mono 11px, `--bg-2`/85% + border, radius 2px):
 - Top-left: live camera readout (teal numbers), updates every frame.
-- Top-right: dolly zoom readout (`100%` = focal distance; 40%–400%) + `FIT` / reframe button (`R`).
+- Top-right: **camera bookmarks** — numbered chips save/jump saved framings (persisted into scene.json `bookmarks`; hover × deletes) + dolly zoom readout.
 - Bottom-right: **path playback** — Switch + preset chips `SWEEP · ORBIT · DOLLY` (space toggles), and `RESET CAM` ghost button (lucide `Crosshair`, restores the default head-on framing).
 
+**Layer interaction (v2.1):**
+- **Click a sprite** to select it — per-pixel alpha picking (transparent texels fall through to layers behind; locked layers are skipped). Selected layers get an always-on-top amber outline (`EdgesGeometry` child, `depthTest:false`).
+- **Drag a sprite** to move it 1:1: billboards slide on their z-plane (offset X/Y); ground layers slide along the floor (screen-y → depth — drag up-screen = recede). Multi-selection drags together.
+- **Shift+drag**: push/pull depth for billboards (up = farther); hover height (offset Y) for ground layers. **Ctrl+drag**: snap to 8px.
+- **Shift+click** toggles layers in/out of the multi-selection (panel rows too). Plain click on an already-selected layer collapses the selection to it; click empty space deselects.
+- Dragging on empty space pans the camera (below).
+
 **Camera interaction:**
-- **Drag** anywhere on the viewport (cursor `grab` → `grabbing`): pan — camera and target move together, 1:1 world-feel at the focal plane; clamped to the stage ±50% with soft edges.
+- **Drag** empty space (cursor `grab` → `grabbing`): pan — camera and target move together, 1:1 world-feel at the focal plane; clamped to the stage ±50% with soft edges.
 - **Wheel**: dolly zoom toward/away from the target, clamped to 40%–400% of the focal distance.
 - **Right-drag / Alt-drag** (editor mode): orbit — yaw around the target plus pitch clamped to ±60°.
 - `R`: reframe to the default camera. While dragging: scanlines off, crosshair brightens, HUD values flash amber.
@@ -97,10 +104,15 @@
   - **orientation** — segmented toggle `vertical | ground` (mono 10px; active = `--bg-3` + amber). `vertical` = billboard facing the camera · `ground` = floor plane receding to the horizon.
   - **lit** — Switch: `lit` (shaded by scene lights) / `unlit` (full-bright — sky, glow overlays).
   - Live readout (mono 11px, `--bg-1` inset, padding 8): `depth +350 → parallax ×0.68` — the perspective factor `D / (D + depth)` recomputed from the current canvas/fov; result value teal. **This is the product's thesis made visible.**
+- **opacity** — slider 0–1 (step 0.05) + number input, in the Depth & light group.
+- **locked** — Switch (next to visibility): locked layers can't be picked, dragged or nudged in the viewport; Inspector stays editable.
 - **TRANSFORM** group:
   - **Scale** — slider 0.10–4.00 (step 0.05) + number input; quick-set chips `0.5× 1× 2×`.
   - **Offset X / Offset Y** — two number steppers (−4096…4096, step 1; Shift+arrows ±10) with mono labels.
-  - `RESET TRANSFORM` ghost button (scale 1, offsets 0 — depth/orientation kept).
+  - **rotate** — slider −180…+180° in-plane spin (ground layers yaw around their near-edge pivot).
+  - **flip X / flip Y** — toggle chips (amber when on); **H / V** buttons center the layer on the canvas (V disabled for ground layers).
+  - `RESET TRANSFORM` ghost button (scale 1, offsets 0, rotation 0, flips off — depth/orientation kept).
+  - Multi-select shows a `×N` badge next to the layer name.
 - **Danger zone:** divider + **Duplicate layer** (secondary, `Copy` icon) + **Delete layer** (danger, `Trash2`).
 
 **Keyboard nudge:** with layer selected and no input focused, arrows adjust offset ±1 (Shift ±10) — HUD readout flashes.
@@ -132,7 +144,7 @@ Right: storage meter chip (`local 2.1MB`) · autosave time / dirty indicator · 
 ## 6. Export Modal (shadcn Dialog, 720px, `--bg-1`)
 
 - **Header:** Silkscreen 14px `EXPORT SCENE` + sub mono 12px: `goldenhollow-village.json · 8 layers · 148.2 KB`.
-- **Tabs:** `SCENE.JSON` (default) | `RUNTIME.HTML` (the three.js player snippet — CDN import map, no build step — pre-filled with this scene's canvas size). Both CodeBlocks with working Copy buttons.
+- **Tabs:** `SCENE.JSON` (default) | `RUNTIME.HTML` (the three.js player snippet — CDN import map, no build step — pre-filled with this scene's canvas size) | `VIDEO.WEBM` — records the live editor canvas (`captureStream(60)` + MediaRecorder, vp9→vp8) for exactly one camera-path period (sweep 9s / orbit 12s / dolly 10s) → a seamlessly looping WebM; preset chips pick the path. Grid/selection outlines are captured, so the hint says to press Esc + hide the grid first.
 - **Options row:** checkbox **Embed images (base64)** — on (default): `src` = dataURLs, single self-contained JSON, file size shown. Off: exports an **honest zip** — `scene.json` with `src` rewritten to `assets/<name>.png`, plus every layer image really inside the zip (`src/core/zip.ts`); external (non-dataURL) srcs are kept as-is and reported in the toast.
 - **Footer:** **Download project** (ghost — self-contained `.pixelstage.json` for moving between machines) · **Copy JSON** (secondary) · **Download** (primary — `.json` when embedding, `.zip` otherwise).
 - **Animation:** dialog scales 0.96→1 + fade (200ms expo); JSON block highlights line-by-line on open (60ms stagger, subtle).
@@ -148,7 +160,7 @@ Two tabs: **Upload file** (drop zone + browse, accepts PixelStage project/scene 
 ## 8. Shortcuts Modal (`?`)
 
 Two-column mono table in a compact dialog:
-`Space` play/pause camera path · `R` reframe camera · `Del` delete layer · `H` show/hide layer · `Ctrl/⌘ Z` undo · `Ctrl/⌘⇧ Z · Ctrl/⌘ Y` redo · `Ctrl/⌘ D` duplicate · `Ctrl/⌘ S` save project · `Ctrl/⌘⇧ S` save as · `Ctrl/⌘ E` export · `Ctrl/⌘ O` open project · `Wheel` dolly zoom · `Right/Alt drag` orbit · `Arrows` nudge offset ±1 · `Shift+Arrows` ±10 · `?` this panel · `Esc` close / deselect.
+`Space` play/pause camera path · `R` reframe camera · click sprite select · drag sprite move · `Shift+drag` depth/hover · `Ctrl+drag` snap 8px · `Shift+click` multi-select · `Del` delete layer(s) · `H` show/hide · `L` lock/unlock · `X`/`Y` flip X/Y · `[` `]` depth ∓10 (Shift 50) · `−` `=` scale ∓0.05 (Shift 0.25) · `Ctrl/⌘ C · V` copy/paste layers · `Ctrl/⌘ A` select all · `Ctrl/⌘ Z` undo · `Ctrl/⌘⇧ Z · Ctrl/⌘ Y` redo · `Ctrl/⌘ D` duplicate · `Ctrl/⌘ S` save project · `Ctrl/⌘⇧ S` save as · `Ctrl/⌘ E` export · `Ctrl/⌘ O` open project · `Wheel` dolly zoom · `Right/Alt drag` orbit · `Arrows` nudge offset ±1 · `Shift+Arrows` ±10 · `?` this panel · `Esc` close / deselect.
 Keys styled as MonoChips. Animation: rows stagger 30ms.
 
 ---

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Copy, Download } from "lucide-react";
+import { Check, Copy, Download, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RUNTIME_SNIPPET } from "@/core/scene";
+import { PATH_PERIOD, type PathPreset } from "@/core/cameraPaths";
+import { getEditorCanvas } from "@/core/editorCanvas";
 import { saveBlob } from "@/core/platform";
 import { buildSceneZip } from "@/core/zip";
 import { saveProjectAs } from "@/store/projectFile";
@@ -94,6 +96,7 @@ export default function ExportModal({
           <TabsList>
             <TabsTrigger value="json">SCENE.JSON</TabsTrigger>
             <TabsTrigger value="runtime">RUNTIME.HTML</TabsTrigger>
+            <TabsTrigger value="video">VIDEO.WEBM</TabsTrigger>
           </TabsList>
 
           <TabsContent value="json">
@@ -135,6 +138,10 @@ export default function ExportModal({
               {copied ? <Check /> : <Copy />} {t("export.copyRuntime")}
             </Button>
           </TabsContent>
+
+          <TabsContent value="video">
+            <VideoRecorder slugName={slug(name)} />
+          </TabsContent>
         </Tabs>
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
@@ -159,6 +166,98 @@ function slug(s: string): string {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "scene"
+  );
+}
+
+/**
+ * Records the live editor canvas for exactly one camera-path period → a
+ * seamlessly looping WebM. Paths are periodic, so any start offset loops.
+ */
+function VideoRecorder({ slugName }: { slugName: string }) {
+  const t = useT();
+  const { pathPreset, setPathPreset, setPlaying } = useSceneStore();
+  const [recording, setRecording] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const record = async () => {
+    const canvas = getEditorCanvas();
+    if (!canvas || recording) return;
+    const mime = [
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm",
+    ].find((m) => MediaRecorder.isTypeSupported(m));
+    if (!mime) {
+      toast(t("export.videoUnsupported"), { variant: "danger" });
+      return;
+    }
+    const periodMs = PATH_PERIOD[pathPreset] * 1000;
+    const stream = canvas.captureStream(60);
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12_000_000 });
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => {
+      if (e.data.size) chunks.push(e.data);
+    };
+    const stopped = new Promise<void>((res) => {
+      rec.onstop = () => res();
+    });
+
+    setRecording(true);
+    setProgress(0);
+    setPlaying(true);
+    rec.start(250); // gather chunks every 250ms
+    const t0 = performance.now();
+    const tick = setInterval(() => {
+      setProgress(Math.min(1, (performance.now() - t0) / periodMs));
+    }, 100);
+    await new Promise((r) => setTimeout(r, periodMs));
+    clearInterval(tick);
+    rec.stop();
+    await stopped;
+    stream.getTracks().forEach((tr) => tr.stop());
+    setPlaying(false);
+    setRecording(false);
+
+    const blob = new Blob(chunks, { type: "video/webm" });
+    const filename = `${slugName}-${pathPreset}.webm`;
+    const saved = await saveBlob(blob, { defaultPath: filename });
+    if (saved) toast(`${t("export.downloaded")} ${filename}`, { variant: "success" });
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-text-2">{t("export.videoBlurb")}</p>
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[11px] text-text-3">{t("term.preset")}</span>
+        <div className="flex items-center rounded-sm border border-border">
+          {(Object.keys(PATH_PERIOD) as PathPreset[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPathPreset(p)}
+              disabled={recording}
+              className={
+                pathPreset === p
+                  ? "bg-bg-3 px-2 py-1 font-mono text-[10px] text-amber"
+                  : "px-2 py-1 font-mono text-[10px] text-text-3 hover:text-text-1"
+              }
+            >
+              {p} · {PATH_PERIOD[p]}s
+            </button>
+          ))}
+        </div>
+      </div>
+      {recording && (
+        <div className="h-1 w-full bg-bg-3">
+          <div className="h-full bg-amber transition-none" style={{ width: `${progress * 100}%` }} />
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <p className="font-mono text-[10px] leading-relaxed text-text-3">{t("export.videoHint")}</p>
+        <Button variant="primary" size="sm" onClick={() => void record()} disabled={recording}>
+          <Video /> {recording ? t("export.recording") : t("export.record")}
+        </Button>
+      </div>
+    </div>
   );
 }
 
