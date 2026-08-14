@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Check,
-  FileJson,
+  Clapperboard,
   Github,
   HardDriveDownload,
-  Layers,
+  MousePointer2,
   Move,
   SlidersHorizontal,
   Terminal,
@@ -162,6 +162,7 @@ function Hero() {
             <MonoChip>{t("hero.chip2")}</MonoChip>
             <MonoChip>{t("hero.chip3")}</MonoChip>
             <MonoChip>{t("hero.chip4")}</MonoChip>
+            <MonoChip>{t("hero.chip5")}</MonoChip>
           </motion.div>
         </div>
 
@@ -228,7 +229,8 @@ function Hero() {
 /* --------------------------------- Section 2 --------------------------------- */
 
 const TICKER_KEYS: DictKey[] = [
-  "tick.1", "tick.2", "tick.3", "tick.4", "tick.5", "tick.6", "tick.7", "tick.8",
+  "tick.1", "tick.9", "tick.3", "tick.11", "tick.5", "tick.6", "tick.12",
+  "tick.2", "tick.10", "tick.4", "tick.7", "tick.13", "tick.8",
 ];
 
 function SpecTicker() {
@@ -408,11 +410,11 @@ function HowItWorks() {
 
 /* --------------------------------- Section 5 --------------------------------- */
 
-const FEATURES: { icon: typeof Layers; h: DictKey; b: DictKey }[] = [
-  { icon: Layers, h: "feat.1.h", b: "feat.1.b" },
+const FEATURES: { icon: typeof Move; h: DictKey; b: DictKey }[] = [
+  { icon: MousePointer2, h: "feat.1.h", b: "feat.1.b" },
   { icon: SlidersHorizontal, h: "feat.2.h", b: "feat.2.b" },
   { icon: Move, h: "feat.3.h", b: "feat.3.b" },
-  { icon: FileJson, h: "feat.4.h", b: "feat.4.b" },
+  { icon: Clapperboard, h: "feat.4.h", b: "feat.4.b" },
   { icon: HardDriveDownload, h: "feat.5.h", b: "feat.5.b" },
   { icon: Terminal, h: "feat.6.h", b: "feat.6.b" },
 ];

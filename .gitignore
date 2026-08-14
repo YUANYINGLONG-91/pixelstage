@@ -4,3 +4,4 @@ dist-electron
 dist-ssr
 *.local
 .DS_Store
+.shots/

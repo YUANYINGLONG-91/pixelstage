@@ -132,7 +132,7 @@ function SceneCard({ theme, onExplode }: { theme: PlaceholderTheme; onExplode: (
         <ScenePreview theme={theme} />
         <div className="absolute right-2 top-2 flex gap-1.5">
           <span className="rounded-sm border border-border bg-bg-2/85 px-1.5 py-0.5 font-mono text-[10px] text-text-3">
-            960×540
+            {scene.canvas.width}×{scene.canvas.height}
           </span>
           <span className="rounded-sm border border-border bg-bg-2/85 px-1.5 py-0.5 font-mono text-[10px] text-text-3">
             {scene.layers.length} {t("gal.layersChip")}
@@ -258,7 +258,7 @@ function ExplodeModal({
             <div className="grid grid-cols-2 gap-2">
               {[
                 [t("gal.layersStat"), String(scene.layers.length)],
-                [t("gal.canvasStat"), "960×540"],
+                [t("gal.canvasStat"), `${scene.canvas.width}×${scene.canvas.height}`],
                 [t("gal.fxRange"), `${Math.min(...depths)} – ${Math.max(...depths)}`],
                 [t("gal.tagStat"), t(FILTERS.find((f) => f.key === meta.tag)!.label)],
               ].map(([k, v]) => (

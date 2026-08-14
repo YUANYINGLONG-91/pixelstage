@@ -78,6 +78,9 @@ function LayerInspector({ layer }: { layer: Layer }) {
       <div className="checker flex h-24 items-center justify-center overflow-hidden rounded border border-border">
         <img src={layer.src} alt="" className="max-h-full max-w-full object-contain" />
       </div>
+      <p className="-mt-3 font-mono text-[10px] leading-relaxed text-text-3">
+        {t("insp.dragHint")}
+      </p>
 
       {/* name */}
       <Field label={t("insp.name")}>
@@ -393,7 +396,7 @@ function SceneInspector() {
     particles: (p: Partial<typeof effects.particles>, k?: string) =>
       setEffects({ particles: { ...effects.particles, ...p } }, k ? { coalesceKey: k } : undefined),
   };
-  const TIPS = [t("insp.tip1"), t("insp.tip2"), t("insp.tip3"), t("insp.tip4")];
+  const TIPS = [t("insp.tip1"), t("insp.tip2"), t("insp.tip5"), t("insp.tip3"), t("insp.tip4")];
   const tip = TIPS[new Date().getMinutes() % TIPS.length];
   const storageBytes = layers.reduce((n, l) => n + (l.src.startsWith("data:") ? l.src.length : 0), 0);
   const pct = Math.min(100, Math.round((storageBytes / (4 * 1024 * 1024)) * 100));

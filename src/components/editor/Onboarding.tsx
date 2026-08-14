@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n";
 import type { DictKey } from "@/i18n/dict";
 
-const ONBOARDED_KEY = "pixelstage.onboarded";
+const ONBOARDED_KEY = "pixelstage.onboarded.v2";
 
 const STEPS: { title: DictKey; body: DictKey }[] = [
   { title: "onb.s1t", body: "onb.s1b" },
   { title: "onb.s2t", body: "onb.s2b" },
   { title: "onb.s3t", body: "onb.s3b" },
   { title: "onb.s4t", body: "onb.s4b" },
+  { title: "onb.s5t", body: "onb.s5b" },
 ];
 
 export function useOnboarding() {

@@ -76,6 +76,10 @@ export const dict = {
   "vp.addBookmark": { en: "Save camera bookmark", zh: "保存当前机位" },
   "vp.gotoBookmark": { en: "Jump to bookmark", zh: "跳转到机位" },
   "vp.delBookmark": { en: "Delete bookmark", zh: "删除机位" },
+  "vp.playTip": { en: "Play / pause camera path (Space)", zh: "播放 / 暂停运镜（空格）" },
+  "vp.gridTip": { en: "Toggle depth grid", zh: "切换深度网格" },
+  "vp.resetCamTip": { en: "Reset camera (R)", zh: "重置镜头（R）" },
+  "vp.selHint": { en: "drag to move · Shift+drag depth · Esc clear", zh: "拖动移动 · Shift+拖动调纵深 · Esc 取消" },
 
   "insp.title": { en: "Inspector", zh: "检查器" },
   "insp.name": { en: "NAME", zh: "名称" },
@@ -113,6 +117,14 @@ export const dict = {
   "insp.tip4": {
     en: "Set a layer's orientation to \"ground\" to lay it flat like an Octopath floor receding to the horizon.",
     zh: "把图层朝向设为「地面」，它就会像八方旅人那样平铺并向地平线延伸。",
+  },
+  "insp.tip5": {
+    en: "Shift+click layers — in the viewport or the list — to multi-select, then move, hide, flip or delete them together. Ctrl+C / Ctrl+V copy and paste whole layers.",
+    zh: "按住 Shift 点击（画布或图层列表）即可多选，然后一起移动、隐藏、翻转或删除。Ctrl+C / Ctrl+V 可以整层复制粘贴。",
+  },
+  "insp.dragHint": {
+    en: "tip: drag sprites right in the viewport — Shift+drag pushes depth, Ctrl+drag snaps to 8px",
+    zh: "小技巧：直接在画布上拖拽图层 —— Shift+拖动调纵深，Ctrl+拖动吸附 8px",
   },
 
   /* ------------------------- v2 shared terminology ------------------------- */
@@ -235,25 +247,30 @@ export const dict = {
   },
 
   /* ------------------------------- onboarding ------------------------------- */
-  "onb.s1t": { en: "Step 1 / 4 — Load a scene", zh: "第 1 步 / 共 4 步 —— 载入场景" },
+  "onb.s1t": { en: "Step 1 / 5 — Load a scene", zh: "第 1 步 / 共 5 步 —— 载入场景" },
   "onb.s1b": {
     en: "Click \"Load demo scene\" in the center of the canvas, or drag your own PNG/JPG layers in (background first, foreground last).",
     zh: "点击画布中央的「加载示例场景」，或直接把 PNG/JPG 图片拖进来（先背景，再前景）。",
   },
-  "onb.s2t": { en: "Step 2 / 4 — Drag the camera", zh: "第 2 步 / 共 4 步 —— 拖动镜头" },
+  "onb.s2t": { en: "Step 2 / 5 — Drag the camera", zh: "第 2 步 / 共 5 步 —— 拖动镜头" },
   "onb.s2b": {
-    en: "Drag to pan, scroll to dolly, right-drag to orbit — near layers move fast, far layers barely drift. That's real perspective parallax. The path selector (bottom right) plays a cinematic sweep, orbit or dolly for you.",
-    zh: "拖动平移、滚轮推拉、右键拖动环绕 —— 近景跑得快、远景几乎不动，这是真实的透视视差。右下角的运镜选择器可以自动播放平移、环绕或推拉镜头。",
+    en: "Drag to pan, scroll to dolly, right-drag to orbit — near layers move fast, far layers barely drift. That's real perspective parallax. The path selector (bottom right) plays a cinematic sweep, orbit or dolly — and the bookmark chips (top right) save camera shots you can jump back to.",
+    zh: "拖动平移、滚轮推拉、右键拖动环绕 —— 近景跑得快、远景几乎不动，这是真实的透视视差。右下角的运镜选择器可以自动播放平移、环绕或推拉镜头；右上角的机位书签可以保存镜头，随时跳回。",
   },
-  "onb.s3t": { en: "Step 3 / 4 — Tune the depth", zh: "第 3 步 / 共 4 步 —— 调节纵深" },
+  "onb.s3t": { en: "Step 3 / 5 — Grab sprites directly", zh: "第 3 步 / 共 5 步 —— 直接拖拽图层" },
   "onb.s3b": {
-    en: "Select a layer on the left, then drag the depth slider on the right: 0 sits on the focal plane, positive recedes, negative jumps toward the camera. Try the \"ground\" orientation for floors, and toggle \"lit\" for skies and glows.",
-    zh: "左侧选中一个图层，右侧拖动 depth 滑杆：0 位于焦平面，正值后退，负值冲向镜头。地板可以试试「地面」朝向，天空和发光层可以关掉「受光」。",
+    en: "Click any sprite in the viewport to select it — no list-diving. Drag to move it, Shift+drag to push it deeper, Ctrl+drag to snap to 8px. Shift+click adds to the selection so you can move a whole group at once.",
+    zh: "在画布里直接点击任意图层即可选中 —— 不用翻列表。拖动移动、Shift+拖动调纵深、Ctrl+拖动吸附 8px。Shift+点击可以加选，一次移动整组图层。",
   },
-  "onb.s4t": { en: "Step 4 / 4 — Export scene.json", zh: "第 4 步 / 共 4 步 —— 导出 scene.json" },
+  "onb.s4t": { en: "Step 4 / 5 — Depth & appearance", zh: "第 4 步 / 共 5 步 —— 纵深与外观" },
   "onb.s4b": {
-    en: "Press Ctrl+E to export. The included runtime.html plays your scene with three.js straight from a CDN — one file, no build step.",
-    zh: "按 Ctrl+E 导出。附带的 runtime.html 直接用 CDN 上的 three.js 播放你的场景 —— 一个文件，无需构建。",
+    en: "In the inspector: depth 0 sits on the focal plane, positive recedes, negative jumps toward the camera. Try the \"ground\" orientation for floors, toggle \"lit\" off for skies and glows, and dial in opacity, rotation and flip per layer.",
+    zh: "在右侧检查器里：depth 0 位于焦平面，正值后退，负值冲向镜头。地板试试「地面」朝向，天空和发光层关掉「受光」，每层还可以调不透明度、旋转和翻转。",
+  },
+  "onb.s5t": { en: "Step 5 / 5 — Export JSON or WebM", zh: "第 5 步 / 共 5 步 —— 导出 JSON 或 WebM" },
+  "onb.s5b": {
+    en: "Press Ctrl+E to export. scene.json plays anywhere with the included single-file three.js runtime — and the VIDEO.WEBM tab records one full camera loop as a seamlessly looping clip, perfect for sharing your scene.",
+    zh: "按 Ctrl+E 导出。scene.json 配合附带的单文件 three.js 运行时可在任何地方播放；VIDEO.WEBM 标签页还能按当前运镜完整录制一圈，输出无缝循环的视频，方便分享你的场景。",
   },
   "onb.next": { en: "Next", zh: "下一步" },
   "onb.prev": { en: "Back", zh: "上一步" },
@@ -275,6 +292,7 @@ export const dict = {
   "hero.chip2": { en: "TRUE 3D DEPTH", zh: "真实 3D 纵深" },
   "hero.chip3": { en: "LOCAL-FIRST", zh: "本地优先" },
   "hero.chip4": { en: "ONE-FILE RUNTIME", zh: "单文件运行时" },
+  "hero.chip5": { en: "WEBM LOOP EXPORT", zh: "WebM 循环导出" },
   "hero.drag": { en: "✥ DRAG TO MOVE CAMERA", zh: "✥ 拖动以移动镜头" },
   "hero.autoSweep": { en: "AUTO ORBIT", zh: "自动环绕" },
   "hero.resetCamera": { en: "RESET CAMERA", zh: "重置镜头" },
@@ -287,6 +305,11 @@ export const dict = {
   "tick.6": { en: "SWEEP / ORBIT / DOLLY PATHS", zh: "平移 / 环绕 / 推拉运镜" },
   "tick.7": { en: "EXPORT SCENE.JSON", zh: "导出 SCENE.JSON" },
   "tick.8": { en: "AUTOSAVE → LOCALSTORAGE", zh: "自动保存 → 本地存储" },
+  "tick.9": { en: "CLICK TO PICK · DRAG TO MOVE", zh: "点击选中 · 拖拽移动" },
+  "tick.10": { en: "MULTI-SELECT · COPY / PASTE", zh: "多选 · 复制 / 粘贴" },
+  "tick.11": { en: "OPACITY · ROTATE · FLIP", zh: "不透明度 · 旋转 · 翻转" },
+  "tick.12": { en: "CAMERA BOOKMARKS", zh: "机位书签" },
+  "tick.13": { en: "WEBM LOOP EXPORT", zh: "导出 WebM 循环视频" },
 
   "prob.eyebrow": { en: "The problem", zh: "问题" },
   "prob.h2": { en: "Octopath's look without Octopath's budget.", zh: "八方旅人的画面，不要八方旅人的预算。" },
@@ -334,25 +357,25 @@ export const dict = {
 
   "feat.eyebrow": { en: "The tool", zh: "工具本身" },
   "feat.h2": { en: "An editor, not a toy.", zh: "是编辑器，不是玩具。" },
-  "feat.1.h": { en: "Layers", zh: "图层管理" },
+  "feat.1.h": { en: "Direct manipulation", zh: "画布直接操作" },
   "feat.1.b": {
-    en: "Import, reorder, rename, show/hide, delete. Your stack stays organized, drag-and-drop simple.",
-    zh: "导入、排序、重命名、显隐、删除。图层栈井井有条，拖放操作简单直观。",
+    en: "Click a sprite right in the viewport to select it — drag to move, Shift+drag to push depth, Ctrl+drag snaps to 8px. Shift+click multi-selects whole groups.",
+    zh: "在画布里直接点击图层即可选中 —— 拖动移动、Shift+拖动调纵深、Ctrl+拖动吸附 8px。Shift+点击可多选整组图层。",
   },
-  "feat.2.h": { en: "Per-layer depth", zh: "逐层纵深" },
+  "feat.2.h": { en: "Depth & appearance", zh: "纵深与外观" },
   "feat.2.b": {
-    en: "Depth from −400 to +800 px, vertical or ground orientation, lit or unlit — every layer gets its own place in real 3D space.",
-    zh: "纵深 −400 到 +800 像素，垂直或地面朝向，受光或不受光 —— 每一层在真实 3D 空间里都有自己的位置。",
+    en: "Depth from −400 to +800 px, vertical or ground orientation, lit or unlit — plus per-layer opacity, rotation and flip. Every layer gets its own place in real 3D space.",
+    zh: "纵深 −400 到 +800 像素，垂直或地面朝向，受光或不受光 —— 外加每层独立的不透明度、旋转与翻转。每一层在真实 3D 空间里都有自己的位置。",
   },
-  "feat.3.h": { en: "3D camera", zh: "3D 镜头" },
+  "feat.3.h": { en: "3D camera + bookmarks", zh: "3D 镜头与机位" },
   "feat.3.b": {
-    en: "Drag to pan, scroll to dolly, right-drag to orbit — or play a cinematic sweep / orbit / dolly path and watch the depth sell itself.",
-    zh: "拖动平移、滚轮推拉、右键环绕 —— 或者播放平移 / 环绕 / 推拉运镜，看纵深感自己说话。",
+    en: "Drag to pan, scroll to dolly, right-drag to orbit — or play a cinematic sweep / orbit / dolly path. Save camera bookmarks and jump between shots instantly.",
+    zh: "拖动平移、滚轮推拉、右键环绕 —— 或者播放平移 / 环绕 / 推拉运镜。保存机位书签，一键切换镜头。",
   },
-  "feat.4.h": { en: "Portable JSON", zh: "通用 JSON" },
+  "feat.4.h": { en: "JSON + WebM export", zh: "JSON + WebM 导出" },
   "feat.4.b": {
-    en: "One scene file: order, assets, depths, camera, lights. Engine-agnostic by design, versioned schema.",
-    zh: "一个场景文件：顺序、素材、纵深、镜头、灯光。引擎无关的设计，带版本的 schema。",
+    en: "One scene file: order, assets, depths, camera, lights — engine-agnostic, versioned schema. Or record the viewport into a seamlessly looping WebM clip.",
+    zh: "一个场景文件：顺序、素材、纵深、镜头、灯光 —— 引擎无关，带版本 schema。也可以把画布录成无缝循环的 WebM 视频。",
   },
   "feat.5.h": { en: "Local-first autosave", zh: "本地优先自动保存" },
   "feat.5.b": {

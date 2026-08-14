@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bookmark, BookmarkPlus, Crosshair, Grid3X3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import StageCanvas3D from "@/components/StageCanvas3DLazy";
 import { PATH_PRESETS } from "@/core/cameraPaths";
 import { focalDistance } from "@/core/types";
@@ -35,6 +36,7 @@ export default function EditorViewport({
     setPathPreset,
     resetCamera,
     loadDemo,
+    selectedId,
     selectedIds,
     selectLayer,
     updateLayer,
@@ -78,6 +80,7 @@ export default function EditorViewport({
   const empty = layers.length === 0;
   const distance = Math.round(camera.position.z - camera.target.z);
   const zoomPct = Math.round((focalDistance(canvasSize, camera.fov) / Math.max(1, distance)) * 100);
+  const primaryLayer = layers.find((l) => l.id === selectedId) ?? null;
 
   return (
     <div ref={boxRef} className="relative min-w-0 flex-1 overflow-hidden bg-bg-0">
@@ -143,49 +146,78 @@ export default function EditorViewport({
 
             {/* HUD: camera bookmarks */}
             {!empty && (
-              <div className="absolute right-2 top-2 flex items-center gap-1">
+              <div className="absolute right-2 top-2 flex items-center gap-1.5">
                 {bookmarks.map((_, i) => (
                   <div
                     key={i}
                     className="group relative flex items-center rounded-sm border border-border bg-bg-2/85 font-mono text-[10px]"
                   >
-                    <button
-                      onClick={() => applyBookmark(i)}
-                      className="flex items-center gap-1 px-1.5 py-1 text-text-3 transition-colors hover:text-amber"
-                      aria-label={`${t("vp.gotoBookmark")} ${i + 1}`}
-                      title={t("vp.gotoBookmark")}
-                    >
-                      <Bookmark size={10} /> {i + 1}
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => applyBookmark(i)}
+                          className="flex items-center gap-1 px-2 py-1.5 text-text-3 transition-colors hover:text-amber"
+                          aria-label={`${t("vp.gotoBookmark")} ${i + 1}`}
+                        >
+                          <Bookmark size={10} /> {i + 1}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t("vp.gotoBookmark")}</TooltipContent>
+                    </Tooltip>
                     <button
                       onClick={() => removeBookmark(i)}
-                      className="absolute -right-1.5 -top-1.5 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-border bg-bg-2 text-text-3 hover:text-danger group-hover:flex"
+                      className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full border border-border bg-bg-3 text-text-3 hover:border-danger/60 hover:text-danger group-hover:flex"
                       aria-label={`${t("vp.delBookmark")} ${i + 1}`}
+                      title={t("vp.delBookmark")}
                     >
-                      <X size={8} />
+                      <X size={9} />
                     </button>
                   </div>
                 ))}
-                <button
-                  onClick={addBookmark}
-                  className="flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-1.5 py-1 font-mono text-[10px] text-text-3 transition-colors hover:text-amber"
-                  aria-label={t("vp.addBookmark")}
-                  title={t("vp.addBookmark")}
-                >
-                  <BookmarkPlus size={10} />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={addBookmark}
+                      className="flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] text-text-3 transition-colors hover:text-amber"
+                      aria-label={t("vp.addBookmark")}
+                    >
+                      <BookmarkPlus size={10} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("vp.addBookmark")}</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+
+            {/* HUD: selection chip */}
+            {!empty && selectedIds.length > 0 && primaryLayer && (
+              <div className="absolute bottom-2 left-2 flex max-w-[55%] items-center gap-2 rounded-sm border border-amber/40 bg-bg-2/85 px-2 py-1 font-mono text-[10px]">
+                <span className="truncate text-amber">
+                  {primaryLayer.name}
+                  {selectedIds.length > 1 && (
+                    <span className="text-teal"> ×{selectedIds.length}</span>
+                  )}
+                </span>
+                <span className="hidden truncate text-text-3 lg:inline">{t("vp.selHint")}</span>
               </div>
             )}
 
             {/* HUD: path preset + play + grid + reset */}
             <div className="absolute bottom-2 right-2 flex items-center gap-2">
               <div className="flex items-center gap-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1">
-                <Switch
-                  checked={playing}
-                  onCheckedChange={setPlaying}
-                  aria-label="Toggle camera path playback"
-                  className="scale-75"
-                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center">
+                      <Switch
+                        checked={playing}
+                        onCheckedChange={setPlaying}
+                        aria-label={t("vp.playTip")}
+                        className="scale-75"
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("vp.playTip")}</TooltipContent>
+                </Tooltip>
                 <div className="flex items-center rounded-sm border border-border">
                   {PATH_PRESETS.map((p) => (
                     <button
@@ -205,22 +237,34 @@ export default function EditorViewport({
                   ))}
                 </div>
               </div>
-              <button
-                onClick={() => setGridVisible((v) => !v)}
-                className={cn(
-                  "flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] transition-colors",
-                  gridVisible ? "text-amber" : "text-text-3 hover:text-amber"
-                )}
-                aria-label="Toggle grid"
-              >
-                <Grid3X3 size={11} /> {t("vp.grid")}
-              </button>
-              <button
-                onClick={resetCamera}
-                className="flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] text-text-3 transition-colors hover:text-amber"
-              >
-                <Crosshair size={11} /> {t("vp.resetCam")}
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setGridVisible((v) => !v)}
+                    className={cn(
+                      "flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] transition-colors",
+                      gridVisible ? "text-amber" : "text-text-3 hover:text-amber"
+                    )}
+                    aria-label={t("vp.gridTip")}
+                    aria-pressed={gridVisible}
+                  >
+                    <Grid3X3 size={11} /> {t("vp.grid")}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{t("vp.gridTip")}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={resetCamera}
+                    className="flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] text-text-3 transition-colors hover:text-amber"
+                    aria-label={t("vp.resetCamTip")}
+                  >
+                    <Crosshair size={11} /> {t("vp.resetCam")}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{t("vp.resetCamTip")}</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
