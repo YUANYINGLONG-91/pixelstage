@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { loadProject, saveProject } from "@/core/storage";
+import type { PlaceholderTheme } from "@/core/placeholder";
 import { useSceneStore } from "@/store/sceneStore";
 import { toast } from "@/store/toastStore";
 
@@ -7,6 +8,21 @@ import { toast } from "@/store/toastStore";
  * Autosave (PRD §3-F5): every store mutation is debounce-saved (500ms).
  * On mount, restores the local project if one exists.
  */
+
+/** Retired built-in demo scenes → their current equivalents. A restored save
+ *  matching one of these is a stale generated demo (old art/effects), not user
+ *  work — swap in the freshly generated scene instead of rendering the old one. */
+const RETIRED_DEMOS: Record<string, PlaceholderTheme> = {
+  "Sunset Valley": "village",
+  "Ember Dungeon": "ruins",
+};
+
+function staleDemoTheme(p: { name: string; layers: { name: string }[] }): PlaceholderTheme | null {
+  if (RETIRED_DEMOS[p.name]) return RETIRED_DEMOS[p.name];
+  // old Neon Alley demo had 5 layers (no "runner" character layer); the current one has 6
+  if (p.name === "Neon Alley" && !p.layers.some((l) => l.name === "runner")) return "alley";
+  return null;
+}
 export function useAutosave() {
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [restored, setRestored] = useState(false);
@@ -19,7 +35,13 @@ export function useAutosave() {
       try {
         const project = await loadProject();
         if (!cancelled && project && project.layers.length > 0) {
-          useSceneStore.getState().loadJSON(project);
+          const stale = staleDemoTheme(project);
+          if (stale) {
+            // stale generated demo save — regenerate with the current art kit
+            useSceneStore.getState().loadDemo(stale);
+          } else {
+            useSceneStore.getState().loadJSON(project);
+          }
           setRestored(true);
         }
       } catch {
