@@ -225,8 +225,8 @@ export class Stage3D {
       const dist = this.camera.position.distanceTo(focusPoint);
       (this.bokeh.uniforms as Record<string, { value: number }>).focus.value = dist;
       (this.bokeh.uniforms as Record<string, { value: number }>).aperture.value =
-        fx.dof.aperture * 0.00004;
-      (this.bokeh.uniforms as Record<string, { value: number }>).maxblur.value = 0.012;
+        fx.dof.aperture * 0.000025;
+      (this.bokeh.uniforms as Record<string, { value: number }>).maxblur.value = 0.007;
     }
     if (this.grade) {
       this.grade.uniforms.vignette.value = fx.grade.vignette;
@@ -294,12 +294,12 @@ export class Stage3D {
     if (!this.composer) {
       this.composer = new EffectComposer(this.renderer);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(cw, ch), 0.55, 0.55, 0.55);
+      this.bloom = new UnrealBloomPass(new THREE.Vector2(cw, ch), 0.55, 0.3, 0.55);
       this.composer.addPass(this.bloom);
       this.bokeh = new BokehPass(this.scene, this.camera, {
         focus: 800,
         aperture: 0.00001,
-        maxblur: 0.012,
+        maxblur: 0.007,
       });
       this.bokeh.enabled = false;
       this.composer.addPass(this.bokeh);
