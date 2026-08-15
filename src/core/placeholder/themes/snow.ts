@@ -57,20 +57,25 @@ function sky(): string {
 function mountains(): string {
   const p = new Painter(W, H).seed(62);
   const base = 224; // baseRow(420)
-  // three snow ridges, aerial perspective
+  // three snow ridges, aerial perspective — tall enough to read as mountains
   const ridge = (baseY: number, amp: number, step: number, color: string, snowTone: string | null) => {
     let px = 0;
-    let py = baseY;
+    let py = baseY - Math.floor(p.rng() * amp * 0.4);
     p.ctx.fillStyle = color;
     p.ctx.beginPath();
     p.ctx.moveTo(0, 270 * 2);
     p.ctx.lineTo(0, py * 2);
-    const peaks: [number, number][] = [];
+    // record every vertex so snowcaps can follow the silhouette
+    const verts: [number, number][] = [[0, py]];
     while (px < 480) {
       const nx = px + Math.floor(step * (0.5 + p.rng()));
-      const ny = baseY - Math.floor(p.rng() * amp);
+      // alternate peak / valley so the ridge has real relief
+      const up = verts.length % 2 === 1;
+      const ny = up
+        ? baseY - Math.floor(amp * (0.6 + p.rng() * 0.4))
+        : baseY - Math.floor(amp * (0.15 + p.rng() * 0.3));
       p.ctx.lineTo(nx * 2, ny * 2);
-      peaks.push([nx, ny]);
+      verts.push([nx, ny]);
       px = nx;
       py = ny;
     }
@@ -79,41 +84,85 @@ function mountains(): string {
     p.ctx.closePath();
     p.ctx.fill();
     if (snowTone) {
-      for (const [sx, sy] of peaks) {
-        p.rect(sx - 3, sy, 6, 2, hexToRgb(snowTone), 0.85);
-        p.rect(sx - 1, sy + 2, 3, 1, hexToRgb(snowTone), 0.6);
+      // snowcaps hug the silhouette: a stripe just under each peak/valley edge
+      const snow = hexToRgb(snowTone);
+      for (let i = 1; i < verts.length - 1; i++) {
+        const [vx, vy] = verts[i];
+        const [, prevY] = verts[i - 1];
+        const [, nextY] = verts[i + 1];
+        const isPeak = vy < prevY && vy < nextY;
+        if (!isPeak) continue;
+        // cap: 3 rows tall at the tip, tapering down both slopes
+        for (let d = 0; d < 5; d++) {
+          const wdt = 5 - d;
+          p.rect(vx - wdt, vy + d, wdt * 2, 1, snow, 0.9 - d * 0.12);
+        }
       }
     }
   };
-  ridge(base - 26, 26, 30, "#3E4A72", "#8FA0C8");
-  p.dither(0, base - 52, 480, 52, hexToRgb("#3E4A72"), hexToRgb("#B8CCF0"), 0.08); // moonlit haze
-  ridge(base - 12, 20, 26, "#2E3A5E", "#7A8FBC");
-  ridge(base, 14, 34, "#22304E", null);
+  ridge(base - 40, 52, 34, "#465280", "#9DB0D8");
+  ridge(base - 22, 40, 28, "#333F6A", "#8498C4");
+  ridge(base, 22, 36, "#22304E", null);
+  // moonlit sheen along the far ridge tops — translucent, no opaque rect
+  p.hazeV(0, base - 52, 480, 20, hexToRgb("#5E6E9A"), 0.02, 0.22, 0.5);
   // two cabins with warm windows — the cold world's only warmth
   const cabin = (x: number, w: number) => {
-    const wood = ramp("#2A2436");
-    p.rect(x, base - 8, w, 8, wood[2]);
+    const wood = ramp("#3A3050");
+    const wallTop = base - 12;
+    p.rect(x, wallTop, w, 12, wood[1]);
+    p.rect(x + 1, wallTop, w - 2, 11, wood[2]);
+    // plank lines
+    for (let gy = wallTop + 2; gy < base; gy += 3) p.rect(x + 1, gy, w - 2, 1, wood[1]);
+    // A-frame roof with a thick snow blanket
     p.poly(
       [
-        [x - 2, base - 8],
-        [x + w / 2, base - 14],
-        [x + w + 2, base - 8],
+        [x - 3, wallTop],
+        [x + w / 2, wallTop - 9],
+        [x + w + 3, wallTop],
       ],
-      wood[1]
+      wood[0]
     );
-    snowCap(p, x - 1, base - 10, w + 2, SNOW());
-    p.rect(x + 2, base - 5, 3, 3, hexToRgb("#FFB648")); // warm window
-    p.px(x + 3, base - 4, HOT);
-    p.glow(x + 3, base - 4, 6, "#FFB648", 4, 0.3);
-    // chimney smoke
+    p.poly(
+      [
+        [x - 2, wallTop - 1],
+        [x + w / 2, wallTop - 8],
+        [x + w + 2, wallTop - 1],
+      ],
+      SNOW()[1]
+    );
+    p.poly(
+      [
+        [x - 1, wallTop - 2],
+        [x + w / 2, wallTop - 7],
+        [x + w + 1, wallTop - 2],
+      ],
+      SNOW()[2]
+    );
+    p.poly(
+      [
+        [x + w / 2 - 1, wallTop - 7],
+        [x + w / 2, wallTop - 8],
+        [x + w / 2 + 2, wallTop - 3],
+      ],
+      SNOW()[3]
+    );
+    // door + warm window with a real glow pool
+    p.rect(x + 2, base - 6, 3, 6, wood[0]);
+    p.rect(x + w - 6, wallTop + 3, 4, 4, hexToRgb("#FFB648"));
+    p.rect(x + w - 5, wallTop + 4, 2, 2, HOT);
+    p.rect(x + w - 6, wallTop + 4, 4, 1, wood[0]); // mullion
+    p.glow(x + w - 4, wallTop + 5, 8, "#FFB648", 4, 0.35);
+    // chimney + smoke
+    p.rect(x + w - 3, wallTop - 8, 2, 5, wood[1]);
+    snowCap(p, x + w - 4, wallTop - 9, 4, SNOW());
     for (let i = 0; i < 4; i++) {
-      p.px(x + w - 3 + Math.floor(p.rng() * 2), base - 12 - i * 2, [180, 190, 210], 0.3 - i * 0.06);
+      p.px(x + w - 2 + Math.floor(p.rng() * 2), wallTop - 10 - i * 2, [180, 190, 210], 0.35 - i * 0.07);
     }
   };
-  cabin(120, 14);
-  cabin(360, 12);
+  cabin(118, 18);
+  cabin(356, 16);
   // warm haze pooling at the horizon
-  p.dither(0, base - 4, 480, 4, hexToRgb("#22304E"), hexToRgb("#4A5E8C"), 0.25);
+  p.ditherV(0, base - 3, 480, 3, hexToRgb("#22304E"), hexToRgb("#4A5E8C"), 0.3, 0.05);
   return p.dataURL();
 }
 

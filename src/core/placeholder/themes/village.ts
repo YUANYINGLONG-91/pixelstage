@@ -6,7 +6,7 @@
 
 import type { Layer, RenderEffects } from "../../types";
 import { defaultEffects } from "../../types";
-import { HOT, Painter, hexToRgb, mix, ramp } from "../pixel";
+import { HOT, Painter, hexToRgb, mix, ramp, type RGB } from "../pixel";
 import { cobble, grassTuft, leafCluster, pineTree, trunk } from "../materials";
 import {
   bannerPole,
@@ -39,14 +39,17 @@ function sky(): string {
   p.glow(sx, sy, 24, "#FFD98A", 5, 0.6);
   p.rect(sx - 8, sy - 8, 16, 16, hexToRgb("#FFE9B0"));
   p.rect(sx - 5, sy - 5, 10, 10, hexToRgb("#FFF8E0"));
-  // dusk clouds: mauve bodies, gold under-edges
+  // dusk clouds: mauve bodies, gold under-edge — painted with the
+  // shifted-shape recipe (amber base, body restacked 2 cells up) so the warm
+  // rim is a continuous edge hugging the form, never loose dashes
   const cloud = (cx: number, cy: number, s: number, body: string, edge: string) => {
+    const e = hexToRgb(edge);
+    p.blob(cx, cy + 2 * s, 8 * s, e);
+    p.blob(cx + 9 * s, cy + 3 * s, 6 * s, e);
+    p.blob(cx - 8 * s, cy + 3 * s, 5 * s, e);
     p.blob(cx, cy, 8 * s, body);
-    p.blob(cx + 9 * s, cy + 2 * s, 6 * s, body);
-    p.blob(cx - 8 * s, cy + 2 * s, 5 * s, body);
-    for (let i = 0; i < 10 * s; i++) {
-      p.rect(cx - 10 * s + Math.floor(p.rng() * 20 * s), cy + 4 * s + Math.floor(p.rng() * 2), 2, 1, edge, 0.8);
-    }
+    p.blob(cx + 9 * s, cy + 1 * s, 6 * s, body);
+    p.blob(cx - 8 * s, cy + 1 * s, 5 * s, body);
   };
   cloud(70, 40, 2, "#5E4E68", "#FFC877");
   cloud(210, 58, 1.5, "#54465E", "#F0A96A");
@@ -73,6 +76,9 @@ function townSilhouette(): string {
   const haze = hexToRgb("#8A6E88");
   const mid = hexToRgb("#6A5578");
   const near = hexToRgb("#54466A");
+  // golden horizon haze FIRST — translucent cells thinning upward, so the
+  // top edge dissolves into the sky instead of ending in a straight wall
+  p.hazeV(0, base - 34, 480, 34, hexToRgb("#D89A6A"), 0.04, 0.5, 0.55);
   // far ridge of rooftops
   for (let x = 0; x < 480; x += 18) {
     const hh = 8 + Math.floor(p.rng() * 10);
@@ -86,7 +92,6 @@ function townSilhouette(): string {
       haze
     );
   }
-  p.dither(0, base - 26, 480, 26, haze, hexToRgb("#FFC877"), 0.12); // gold haze
   // mid rooftops
   for (let x = 8; x < 480; x += 26) {
     const hh = 12 + Math.floor(p.rng() * 12);
@@ -112,8 +117,6 @@ function townSilhouette(): string {
     near
   );
   p.rect(cx - 1, base - 56, 2, 4, near);
-  p.px(cx - 1, base - 57, near);
-  p.px(cx + 1, base - 57, near);
   p.rect(cx - 2, base - 28, 4, 6, hexToRgb("#2A2436"));
   p.rect(cx - 1, base - 27, 2, 4, hexToRgb("#FFC45E")); // lit spire window
   p.px(cx, base - 26, HOT);
@@ -122,7 +125,8 @@ function townSilhouette(): string {
     const wx = 20 + Math.floor(p.rng() * 440);
     p.rect(wx, base - 6 - Math.floor(p.rng() * 10), 2, 2, hexToRgb("#FFC45E"), 0.85);
   }
-  p.dither(0, base - 8, 480, 8, mid, hexToRgb("#E8935C"), 0.2); // ground haze
+  // warm pool hugging the roofline — translucent, densest at the base
+  p.hazeV(0, base - 12, 480, 12, hexToRgb("#E8935C"), 0.03, 0.4, 0.5);
   return p.dataURL();
 }
 
@@ -214,13 +218,20 @@ function ground(): string {
   const p = new Painter(W, G).seed(101);
   // earth base: warm loam near → dusk mauve at the horizon
   p.sky(["#55452F", "#67503C", "#725550", "#7C5B58"], 0.3, 480);
-  // cobblestone plaza: constant world-size stones, staggered courses
+  // cobblestone plaza: constant world-size stones, staggered courses.
+  // Distance fade: past the mid rows the stones melt into the earth haze so
+  // the far field doesn't read as a dense brick moiré
   const stone = ramp("#9C8D78");
+  const earthFar = hexToRgb("#7C5B58");
   for (let row = 0; row < 480; row += 6) {
     const off = (row / 6) % 2 === 0 ? 0 : 5;
+    const fade = Math.min(1, Math.max(0, (row - 190) / 260));
     for (let x = -off; x < 480; x += 10) {
       const tone = p.rng() < 0.15 ? mix(stone[1], stone[2], 0.5) : stone[2];
-      cobble(p, x, row, 9, 5, [stone[0], stone[1], tone, stone[3]]);
+      const tones = [stone[0], stone[1], tone, stone[3]].map((c) =>
+        mix(c, earthFar, fade * 0.85)
+      ) as RGB[];
+      cobble(p, x, row, 9, 5, tones);
     }
   }
   // grass verges creeping in from the edges

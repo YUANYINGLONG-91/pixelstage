@@ -198,9 +198,28 @@ export class Painter {
   }
 
   /**
+   * Translucent vertical haze: bayer-thinned cells with NO opaque base —
+   * density fades f0 (top) → f1 (bottom), so the top edge dissolves into
+   * whatever is behind instead of ending in a hard line. For horizon haze,
+   * light shafts, atmospheric fade on distant layers.
+   */
+  hazeV(x: number, y: number, w: number, h: number, c: RGB | string, f0: number, f1: number, a = 1) {
+    const rgb = typeof c === "string" ? hexToRgb(c) : c;
+    this.ctx.fillStyle = css(rgb, a);
+    const k = this.cell;
+    for (let gy = y; gy < y + h; gy++) {
+      const f = f0 + ((f1 - f0) * (gy - y)) / Math.max(1, h - 1);
+      for (let gx = x; gx < x + w; gx++) {
+        if (bayer(gx, gy) < f) this.ctx.fillRect(gx * k, gy * k, k, k);
+      }
+    }
+  }
+
+  /**
    * Multi-stop vertical gradient with ordered-dither transitions between
-   * stops — the classic 16-bit sky. `zone` = fraction of each band used for
-   * the dithered blend into the next stop.
+   * stops — the classic 16-bit sky. The base color interpolates continuously
+   * (no hard band edges); dither only stipples the NEXT stop in, peaking at
+   * the midpoint of each transition so bands melt instead of stepping.
    */
   sky(stops: (RGB | string)[], zone = 0.4, height = this.gh) {
     const cols = stops.map((s) => (typeof s === "string" ? hexToRgb(s) : s));
@@ -209,28 +228,33 @@ export class Painter {
       const fx = t * (cols.length - 1);
       const i = Math.min(cols.length - 2, Math.floor(fx));
       const f = fx - i;
-      if (f < 1 - zone) {
-        this.rect(0, gy, this.gw, 1, mix(cols[i], cols[i + 1], f * 0.5));
+      // continuous base — never jumps when the dither zone starts
+      const base = mix(cols[i], cols[i + 1], f);
+      // dither density: 0 outside the zone, smooth triangle peak inside it
+      const edge = Math.abs(f - 0.5) / 0.5; // 1 at stop boundaries, 0 mid-transition
+      const inZone = edge < zone ? 1 - edge / zone : 0;
+      const density = inZone * inZone * 0.3;
+      if (density > 0.02) {
+        this.dither(0, gy, this.gw, 1, base, cols[i + 1], density);
       } else {
-        const d = (f - (1 - zone)) / zone;
-        this.dither(0, gy, this.gw, 1, cols[i], cols[i + 1], d);
+        this.rect(0, gy, this.gw, 1, base);
       }
     }
   }
 
-  /** Pixel-art glow: dithered concentric squares, densest at the core. */
+  /** Pixel-art glow: dithered concentric discs, densest at the core. */
   glow(cx: number, cy: number, r: number, c: RGB | string, steps = 5, maxA = 0.6) {
     const rgb = typeof c === "string" ? hexToRgb(c) : c;
     for (let i = steps; i >= 1; i--) {
       const rr = Math.round((r * i) / steps);
       const a = (maxA * (steps - i + 1)) / steps;
-      // dither the halo edges so it doesn't band
+      // dither the halo edges so it doesn't band — circular falloff
       this.ctx.fillStyle = css(rgb, a);
       const k = this.cell;
       for (let gy = cy - rr; gy <= cy + rr; gy++) {
         for (let gx = cx - rr; gx <= cx + rr; gx++) {
-          const edge = Math.max(Math.abs(gx - cx), Math.abs(gy - cy)) / Math.max(1, rr);
-          if (bayer(gx, gy) > edge * edge * 0.9) this.ctx.fillRect(gx * k, gy * k, k, k);
+          const edge = Math.hypot(gx - cx, gy - cy) / Math.max(1, rr);
+          if (edge <= 1 && bayer(gx, gy) > edge * edge * 0.9) this.ctx.fillRect(gx * k, gy * k, k, k);
         }
       }
     }

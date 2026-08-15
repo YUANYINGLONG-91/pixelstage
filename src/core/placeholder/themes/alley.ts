@@ -152,9 +152,14 @@ function nearSigns(): string {
   neonSign(p, 8, 60, 70, MAGENTA);
   neonSign(p, 454, 86, 66, CYAN);
   neonSign(p, 454, 168, 40, AMBER);
-  // steam venting from a grate, bottom-left
+  // steam venting from a grate, bottom-left — a visible grate at the base,
+  // wisps spreading and thinning as they rise so the plume reads as steam
+  p.rect(38, 244, 34, 4, hexToRgb("#080A10"));
+  for (let gx = 40; gx < 70; gx += 4) p.rect(gx, 245, 2, 2, hexToRgb("#18202E"));
   for (let i = 0; i < 8; i++) {
-    p.blob(46 + Math.floor(p.rng() * 20), 244 - i * 3, 4 + Math.floor(p.rng() * 5), mix(hexToRgb("#3A4258"), hexToRgb(CYAN), 0.2));
+    const spread = 3 + i * 2;
+    const sx = 52 + Math.floor(p.rng() * spread * 2) - spread;
+    p.blob(sx, 238 - i * 4, 3 + Math.floor(i / 2), mix(hexToRgb("#232C40"), hexToRgb(CYAN), 0.12));
   }
   return p.dataURL();
 }

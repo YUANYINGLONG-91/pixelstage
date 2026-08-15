@@ -223,11 +223,16 @@ export function pineTree(
         p.px(x - half + 2 + Math.floor(p.rng() * (half * 2 - 3)), y, underside ? tones[0] : tones[1]);
       }
     }
-    // snow blankets the ledge where each tier widens again
+    // snow rests in broken clumps on each tier's ledge — never a full-width
+    // stripe (that reads as banding, not snow)
     if (snow && row > 0 && row % tierH === 0 && half > 1) {
-      p.rect(x - half, y, half * 2 + 1, 1, snow[2]);
-      p.rect(x, y, half, 1, snow[3]); // moonlit side
-      if (half > 4 && p.rng() < 0.6) p.px(x - half + 2, y, snow[3]);
+      for (let gx = x - half; gx <= x + half; gx++) {
+        const r = p.rng();
+        if (r < 0.28) continue; // gaps between clumps
+        // clumps sit heavier on the shaded side, brighter on the moonlit side
+        p.px(gx, y, gx >= x && r > 0.6 ? snow[3] : snow[2]);
+        if (p.rng() < 0.3) p.px(gx, y - 1, snow[2]); // fluffy top
+      }
     }
   }
   if (snow) {

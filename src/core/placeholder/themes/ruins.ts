@@ -16,14 +16,33 @@ const FLAME = "#FFB648";
 
 /* -------------------------------- cavern wall -------------------------------- */
 
+/** 3×5 bitmap rune glyphs — deliberate clusters, never scattered dots. */
+const RUNES = [
+  ["X.X", ".X.", "XXX", ".X.", "X.X"],
+  ["XXX", "X..", "XX.", "X..", "XXX"],
+  [".X.", "X.X", "XXX", "..X", "XX."],
+  ["X.X", "XXX", ".X.", ".X.", "XXX"],
+  ["XX.", ".X.", "XXX", ".X.", ".XX"],
+];
+
+function runeGlyph(p: Painter, x: number, y: number, idx: number, c: string, a = 0.9) {
+  const g = RUNES[((idx % RUNES.length) + RUNES.length) % RUNES.length];
+  const rgb = hexToRgb(c);
+  for (let gy = 0; gy < 5; gy++)
+    for (let gx = 0; gx < 3; gx++) if (g[gy][gx] === "X") p.px(x + gx, y + gy, rgb, a);
+}
+
 function wallTorch(p: Painter, x: number, y: number) {
   p.glow(x, y, 76, FLAME, 8, 0.7);
-  p.rect(x - 1, y + 3, 2, 9, hexToRgb("#3A2E1E")); // bracket
-  // flame: outer → core → white heart
-  p.rect(x - 2, y - 3, 4, 6, hexToRgb("#C97B4A"));
-  p.rect(x - 1, y - 5, 3, 6, hexToRgb(FLAME));
-  p.rect(x - 1, y - 3, 2, 4, HOT);
-  p.px(x, y - 6, hexToRgb(FLAME), 0.8);
+  // bracket: wall plate + angled arm
+  p.rect(x - 3, y + 4, 6, 2, hexToRgb("#2A2016"));
+  p.rect(x - 1, y + 3, 2, 9, hexToRgb("#3A2E1E"));
+  // flame teardrop: outer → mid → white heart, flicker tip
+  p.rect(x - 2, y - 2, 5, 5, hexToRgb("#C97B4A"));
+  p.rect(x - 1, y - 4, 3, 6, hexToRgb(FLAME));
+  p.rect(x, y - 6, 1, 2, hexToRgb(FLAME));
+  p.rect(x - 1, y - 2, 2, 4, HOT);
+  p.px(x + 1, y - 7, hexToRgb(FLAME), 0.7);
   // rising sparks
   for (let i = 0; i < 7; i++) {
     p.px(x - 10 + Math.floor(p.rng() * 20), y - 14 - Math.floor(p.rng() * 16), hexToRgb(FLAME), 0.3 + p.rng() * 0.55);
@@ -72,14 +91,13 @@ function runePillar(p: Painter, x: number, yBase: number, h: number, broken: boo
   p.rect(x - 4, yBase - 4, w + 8, 4, stone[1]); // base
   // torch-side rim light
   p.rect(x + (x < 240 ? w - 1 : 0), top, 1, h, mix(stone[3], hexToRgb(FLAME), 0.4), 0.8);
-  // glowing runes down the shaft
-  p.glow(x + w / 2, top + Math.floor(h / 2), 24, TEAL, 4, 0.3);
-  for (let i = 0; i < Math.floor(h / 26); i++) {
-    const ry = top + 10 + i * 26;
-    const rx = x + 5 + (i % 3) * 7;
-    p.rect(rx, ry, 4, 4, hexToRgb(TEAL), 0.85);
-    p.rect(rx + 2, ry + 4, 1, 3, hexToRgb(TEAL), 0.7);
-    p.rect(rx + 1, ry + 1, 2, 2, hexToRgb(TEAL_HOT), 0.9);
+  // glowing runes down the shaft — real glyphs, each with a tiny halo
+  for (let i = 0; i < Math.floor(h / 30); i++) {
+    const ry = top + 12 + i * 30;
+    const rx = x + w / 2 - 1 + (i % 2 === 0 ? -5 : 3);
+    p.glow(rx + 1, ry + 2, 8, TEAL, 3, 0.35);
+    runeGlyph(p, rx, ry, i * 2 + (broken ? 1 : 0), TEAL, 0.9);
+    runeGlyph(p, rx, ry, i * 2 + (broken ? 1 : 0), TEAL_HOT, 0.45);
   }
   rubble(p, x - 8, yBase - 3, w + 16, 3, ramp("#3A3644"), 6);
 }
@@ -89,17 +107,82 @@ function pillarsAndArch(): string {
   const base = 227; // baseRow(300)
   runePillar(p, 77, base, 180, false);
   runePillar(p, 336, base, 150, true);
-  // archway: dark opening breathing teal light
+
+  /* archway: a real stepped stone arch breathing teal light.
+     Crown rows follow a semicircle; the glow inside is concentric ARCHES,
+     not stacked rects — that's what kills the "flat green door" look. */
   const ax = 192;
   const aw = 96;
   const atop = 85;
-  p.rect(ax - 4, atop - 4, aw + 8, base - atop + 4, hexToRgb("#12101A")); // frame
-  p.rect(ax - 4, atop - 4, aw + 8, 2, hexToRgb("#2E2A3A"));
-  for (let i = 0; i < 8; i++) {
-    p.rect(ax + i * 2, atop + i * 3, aw - i * 4, base - atop - i * 3, hexToRgb(TEAL), 0.04 + i * 0.045);
+  const acx = ax + aw / 2;
+  const rIn = aw / 2; // opening crown radius
+  const rOut = rIn + 9; // frame crown radius
+  const frame = ramp("#2E2A3A");
+
+  // frame: outer arch crown + jamb band
+  for (let dy = 0; dy <= rOut; dy++) {
+    const half = Math.round(Math.sqrt(rOut * rOut - dy * dy));
+    p.rect(acx - half, atop - dy, half * 2, 1, frame[1]);
   }
-  p.rect(ax + aw / 2 - 3, atop + 60, 6, base - atop - 60, hexToRgb(TEAL_HOT), 0.85); // core slit
-  p.glow(ax + aw / 2, atop + 90, 40, TEAL, 6, 0.4);
+  p.rect(ax - 9, atop, aw + 18, base - atop, frame[1]);
+  // voussoir wedge blocks around the crown + keystone
+  for (let a = 0; a <= 14; a++) {
+    const th = (Math.PI * a) / 14;
+    const bx = Math.round(acx - Math.cos(th) * (rOut - 2));
+    const by = Math.round(atop - Math.sin(th) * (rOut - 2));
+    p.rect(bx - 2, by - 2, 4, 4, a % 2 ? frame[2] : frame[0]);
+    p.rect(bx - 2, by - 2, 4, 1, frame[3]);
+  }
+  p.rect(acx - 2, atop - rOut - 1, 5, 6, frame[2]); // keystone
+  p.rect(acx - 2, atop - rOut - 1, 5, 1, frame[3]);
+  // jamb block courses
+  for (let y = atop + 4; y < base - 2; y += 9) {
+    p.rect(ax - 9, y, 9, 1, frame[0]);
+    p.rect(ax + aw, y + 4, 9, 1, frame[0]);
+  }
+  p.rect(ax - 9, atop, 2, base - atop, frame[3], 0.6); // jamb edge light
+  p.rect(ax + aw + 7, atop, 2, base - atop, frame[3], 0.6);
+
+  // the opening: near-black arch void
+  for (let dy = 0; dy <= rIn; dy++) {
+    const half = Math.round(Math.sqrt(rIn * rIn - dy * dy));
+    p.rect(acx - half, atop - dy, half * 2, 1, hexToRgb("#081014"));
+  }
+  p.rect(ax, atop, aw, base - atop, hexToRgb("#081014"));
+
+  // teal breath: concentric arches, alpha climbing toward the core
+  // (body inset matches the crown shrink so no seam lip at the junction)
+  for (let i = 0; i < 7; i++) {
+    const rr = rIn - i * 3;
+    const inset = i * 3;
+    const a = 0.05 + i * 0.055;
+    if (rr > 0) {
+      for (let dy = 0; dy <= rr; dy++) {
+        const half = Math.round(Math.sqrt(rr * rr - dy * dy));
+        p.rect(acx - half, atop - dy, half * 2, 1, hexToRgb(TEAL), a);
+      }
+    }
+    p.rect(ax + inset, atop, aw - inset * 2, base - atop, hexToRgb(TEAL), a);
+  }
+  // bright core column, widening toward the floor like light spilling out
+  for (let y = atop - rIn + 8; y < base; y++) {
+    const t = (y - (atop - rIn + 8)) / (base - atop + rIn - 8);
+    const half = Math.round(2 + t * 7);
+    p.rect(acx - half, y, half * 2, 1, hexToRgb(TEAL_HOT), 0.2 + t * 0.55);
+  }
+  // threshold steps catching the light
+  p.rect(ax - 6, base - 3, aw + 12, 3, frame[2]);
+  p.rect(ax - 6, base - 3, aw + 12, 1, mix(frame[3], hexToRgb(TEAL), 0.5));
+  p.rect(ax - 2, base - 6, aw + 4, 3, frame[1]);
+  p.rect(ax - 2, base - 6, aw + 4, 1, mix(frame[2], hexToRgb(TEAL), 0.4));
+  // runes ascending the core
+  for (let i = 0; i < 5; i++) {
+    const ry = atop + 16 + i * 24;
+    const rx = acx + (i % 2 === 0 ? -16 : 12);
+    p.glow(rx + 1, ry + 2, 7, TEAL, 3, 0.4);
+    runeGlyph(p, rx, ry, i + 2, TEAL_HOT, 0.85);
+  }
+  p.glow(acx, atop + 30, 36, TEAL, 6, 0.35);
   return p.dataURL();
 }
 
@@ -115,8 +198,7 @@ function nearPillars(): string {
     p.rect(px + (px < 240 ? 36 : 0), 10, 2, 260, mix(stone[3], hexToRgb(FLAME), 0.35), 0.8);
     // faint runes
     for (let i = 0; i < 3; i++) {
-      p.rect(px + 12 + (i % 2) * 12, 60 + i * 60, 5, 5, hexToRgb(TEAL), 0.5);
-      p.rect(px + 13 + (i % 2) * 12, 61 + i * 60, 2, 2, hexToRgb(TEAL_HOT), 0.6);
+      runeGlyph(p, px + 12 + (i % 2) * 12, 60 + i * 60, i + (px < 240 ? 0 : 2), TEAL, 0.55);
     }
   }
   return p.dataURL();

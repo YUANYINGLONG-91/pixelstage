@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Art Studio — Claude draws every pixel itself</title>
+<meta name="description" content="An Agent Skill that turns Claude into a pixel artist. No Aseprite, no MCP, no diffusion — every pixel is a decision.">
+<meta property="og:title" content="Pixel Art Studio — an Agent Skill">
+<meta property="og:description" content="Claude designs and places every pixel through Python/Pillow, critiques its own render, and iterates until it ships.">
+<meta property="og:image" content="https://gamezxz.github.io/pixel-art-studio/assets/capy_sheet.png">
+<style>
+  /* DNA — cointh: warm cream + terracotta, three-font system (serif/sans/mono) */
+  :root{
+    --bg:#f4f2ea;            /* warm cream canvas */
+    --panel:#efece1;         /* cream panel (warmer than white) */
+    --panel-2:#ebe7da;       /* recessed panel */
+    --ink:#28251f;           /* warm near-black */
+    --ink-soft:#36332b;
+    --dim:#6f6b60;           /* warm muted text */
+    --dim-2:#9c9587;         /* warm muted faint */
+    --line:#e0dccf;          /* warm hairline */
+    --terracotta:#cd6f4d;    /* primary accent */
+    --terracotta-deep:#b85c3b;
+    --terracotta-soft:#ec9978;
+    --terracotta-pale:#e1875f;
+    --code:#e9e4d5;
+    --serif:ui-serif,Georgia,Cambria,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font:17px/1.65 var(--sans);
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:0 24px}
+  header{padding:80px 0 44px;text-align:center}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(34px,6vw,58px);
+     line-height:1.08;letter-spacing:-0.01em;margin-bottom:18px}
+  h1 .px{color:var(--terracotta)}
+  .tagline{font-size:20px;color:var(--dim);max-width:620px;margin:0 auto 30px}
+  .tagline strong{color:var(--ink-soft)}
+  .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-block;padding:13px 28px;border-radius:9px;text-decoration:none;
+       font-weight:600;font-family:var(--sans);transition:all .15s}
+  .btn-main{background:var(--terracotta);color:#fffdf8;
+            box-shadow:0 1px 0 var(--terracotta-deep)}
+  .btn-main:hover{background:var(--terracotta-deep);transform:translateY(-1px)}
+  .btn-ghost{border:1.5px solid var(--line);color:var(--ink);background:var(--panel)}
+  .btn-ghost:hover{border-color:var(--terracotta);color:var(--terracotta-deep)}
+  .gallery{display:flex;gap:22px;justify-content:center;align-items:flex-end;flex-wrap:wrap;padding:40px 0 10px}
+  .gallery figure{text-align:center}
+  .gallery img{image-rendering:pixelated;background:
+    repeating-conic-gradient(#e9e4d5 0 25%,#f3efe2 0 50%) 0 0/16px 16px;
+    border:1px solid var(--line);border-radius:6px;padding:12px}
+  .gallery figcaption{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:10px;letter-spacing:.02em}
+  .note{text-align:center;color:var(--dim);font-size:15px;font-style:italic;padding-bottom:14px}
+  section{padding:48px 0;border-top:1px solid var(--line)}
+  h2{font-family:var(--serif);font-weight:700;font-size:32px;margin-bottom:18px;letter-spacing:-0.01em}
+  h2 span{color:var(--terracotta)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:24px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;transition:transform .15s,border-color .15s}
+  .card:hover{transform:translateY(-2px);border-color:var(--terracotta-soft)}
+  .card h3{font-family:var(--sans);font-size:17px;font-weight:600;margin-bottom:8px;color:var(--ink)}
+  .card p{font-size:15px;color:var(--dim);line-height:1.55}
+  .card .emoji{font-size:26px;display:block;margin-bottom:12px}
+  pre{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:22px;
+      overflow-x:auto;font:13.5px/1.6 var(--mono);margin-top:18px}
+  .cmt{color:var(--dim-2)}.str{color:var(--terracotta-deep)}.kw{color:#5c7a4a;font-weight:600}
+  .loop{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:26px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 18px;
+        font-size:15px;font-weight:600;font-family:var(--sans)}
+  .step small{display:block;font-weight:400;color:var(--dim);font-size:13px;margin-top:2px}
+  .arrow{align-self:center;color:var(--terracotta);font-weight:700;font-family:var(--mono)}
+  .demo{margin-top:24px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;text-align:center}
+  .demo img{max-width:100%;height:auto;border-radius:6px;display:block;margin:0 auto}
+  .demo-cap{font-family:var(--mono);font-size:12.5px;color:var(--dim);margin-top:12px;line-height:1.6}
+  .demo-cap code{background:var(--code);padding:1px 5px;border-radius:3px;color:var(--terracotta-deep)}
+  .anim{margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+  .anim-head{font-family:var(--serif);font-size:18px;color:var(--ink);margin-bottom:14px}
+  .anim-row{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .anim-row figure{text-align:center}
+  .anim-row img{image-rendering:pixelated;background:repeating-conic-gradient(#e9e4d5 0 25%,#f3efe2 0 50%) 0 0/16px 16px;
+    border:1px solid var(--line);border-radius:6px;padding:10px;max-width:100%}
+  .anim-row figcaption{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:8px}
+  footer{padding:48px 0 64px;text-align:center;color:var(--dim);font-size:14px;border-top:1px solid var(--line)}
+  footer a{color:var(--terracotta-deep);text-decoration:none}
+  footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <h1>🎨 Pixel Art <span class="px">Studio</span></h1>
+  <p class="tagline">An Agent Skill that makes Claude a pixel artist.
+  No Aseprite. No MCP server. No diffusion. <strong>Every pixel is a decision.</strong></p>
+  <div class="btns">
+    <a class="btn btn-main" href="https://github.com/Gamezxz/pixel-art-studio">Get it on GitHub</a>
+    <a class="btn btn-ghost" href="#hybrid">Clean AI art →</a>
+    <a class="btn btn-ghost" href="#how">How it works</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="gallery">
+    <figure><img src="assets/capy_walk_down.gif" height="200" alt="capybara walk down"><figcaption>capybara walk · down</figcaption></figure>
+    <figure><img src="assets/capy_walk_left.gif" height="200" alt="capybara walk left"><figcaption>walk · left</figcaption></figure>
+    <figure><img src="assets/capy_walk_right.gif" height="200" alt="capybara walk right"><figcaption>walk · right</figcaption></figure>
+    <figure><img src="assets/slime.gif" height="200" alt="slime bounce animation"><figcaption>slime bounce — 6 frames · squash &amp; stretch</figcaption></figure>
+  </div>
+  <p class="note">Drawn pixel-by-pixel from a build script — the capybara's 4-direction walk cycle came from a single reference photo, the slime's bounce with true GIF transparency.</p>
+</div>
+
+<section id="lpc">
+  <div class="wrap">
+    <h2>Engine-ready: <span>the LPC universal sheet</span></h2>
+    <p>For humanoids (2 arms, 2 legs) the skill targets the
+    <a href="https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/">Liberated Pixel Cup</a>
+    grid — 64×64 cells, standard rows for walk/slash/thrust/spellcast/shoot/hurt —
+    so a build script's output drops straight into any LPC-aware engine template.
+    Only the layout convention is borrowed; every pixel below is drawn from scratch.</p>
+    <div class="anim">
+      <div class="anim-row">
+        <figure><img src="assets/catmage_walk_down.gif" height="130" alt="cat mage walk down"><figcaption>cat mage · walk</figcaption></figure>
+        <figure><img src="assets/catmage_slash_right.gif" height="130" alt="cat mage slash right"><figcaption>cat mage · slash</figcaption></figure>
+        <figure><img src="assets/knight_walk_right.gif" height="130" alt="knight walk right"><figcaption>knight · walk</figcaption></figure>
+        <figure><img src="assets/knight_slash_down.gif" height="130" alt="knight thrust down"><figcaption>knight · spear thrust</figcaption></figure>
+      </div>
+      <p class="demo-cap">each character: idle + 8-frame walk and 6-frame slash, ×4 directions, on one
+      832×1344 sheet + engine JSON — built with <code>scripts/lpc.py</code>, poses authored once and
+      translated onto a margin canvas so a long weapon never clips mid-swing.</p>
+    </div>
+  </div>
+</section>
+
+<section id="learned-styles">
+  <div class="wrap">
+    <h2>Study a reference, <span>keep the design rules</span></h2>
+    <p>The skill can study a visual reference and turn observations into durable, imperative
+    rules inside its own knowledge base. It learns proportions, silhouette, material ramps,
+    overlap and animation constraints—not a pixel-for-pixel copy. The original Verdant Oracle
+    below was built after studying layered-cloth tactical chibi design.</p>
+    <div class="anim">
+      <div class="anim-row">
+        <figure><img src="assets/tactical_oracle_idle.gif" height="300" alt="original tactical chibi oracle idle animation"><figcaption>Verdant Oracle · 4-frame tactical idle</figcaption></figure>
+        <figure><img src="assets/tactical_oracle_sheet.png" height="190" alt="Verdant Oracle spritesheet"><figcaption>64×58 cells · 18-color budget · engine sheet</figcaption></figure>
+      </div>
+      <p class="demo-cap">three-quarter tactical construction: oversized near hand/boot, smaller
+      far-side anatomy, layered cloth with selective warm trim, stable ground pivot, and explicit
+      validation that both eyes and both arms remain readable. Regenerate with
+      <code>python3 examples/tactical-verdant-oracle.py</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="tall-tactical">
+  <div class="wrap">
+    <h2>Beyond chibi: <span>tall tactical heroes</span></h2>
+    <p>The proportion system now includes a 48–64px <strong>tall tactical</strong> preset:
+    roughly 4–5 heads high, with a narrower waist, longer segmented legs, readable knees,
+    and slightly oversized hands and boots. It redraws anatomy at the new height instead of
+    stretching a compact chibi sprite.</p>
+    <div class="anim">
+      <div class="anim-row">
+        <figure><img src="assets/tall_iron_man_repulsor.gif" height="310" alt="Iron Man fan-art repulsor animation in tall tactical pixel style"><figcaption>Iron Man fan-art · repulsor · 6 frames</figcaption></figure>
+        <figure><img src="assets/tall_iron_man_repulsor_sheet.png" height="150" alt="tall tactical repulsor spritesheet"><figcaption>120×72 attack cells · stable pivot · unclipped beam</figcaption></figure>
+      </div>
+      <p class="demo-cap">fan-art demonstration of filled segmented arm armor, matching red/gold
+      boots, explicit far-side anatomy, and a dynamic attack canvas sized from the full beam union.
+      Regenerate with <code>python3 examples/tall-iron-man-repulsor.py</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="cast">
+  <div class="wrap">
+    <h2>Ten characters, <span>one prompt each</span></h2>
+    <p>A random cast drawn from scratch — every character is a ~20-line parametric Python function:
+    32×32, its own 3-step hue-shifted ramps, selective outline, and a 3-frame idle loop
+    (float, bounce, hover, flicker, throat-puff, wing-buzz…). One build script regenerates all ten.</p>
+    <div class="anim">
+      <div class="anim-row">
+        <figure><img src="assets/cast_ghost.gif" height="96" alt="ghost"><figcaption>ghost</figcaption></figure>
+        <figure><img src="assets/cast_mushroom.gif" height="96" alt="mushroom kid"><figcaption>mushroom</figcaption></figure>
+        <figure><img src="assets/cast_robot.gif" height="96" alt="robot"><figcaption>robot</figcaption></figure>
+        <figure><img src="assets/cast_catmage.gif" height="96" alt="cat mage"><figcaption>cat mage</figcaption></figure>
+        <figure><img src="assets/cast_skeleton.gif" height="96" alt="skeleton"><figcaption>skeleton</figcaption></figure>
+        <figure><img src="assets/cast_flame.gif" height="96" alt="flame spirit"><figcaption>flame spirit</figcaption></figure>
+        <figure><img src="assets/cast_frog.gif" height="96" alt="frog"><figcaption>frog</figcaption></figure>
+        <figure><img src="assets/cast_penguin.gif" height="96" alt="penguin"><figcaption>penguin</figcaption></figure>
+        <figure><img src="assets/cast_bee.gif" height="96" alt="bee"><figcaption>bee</figcaption></figure>
+        <figure><img src="assets/cast_golem.gif" height="96" alt="moss golem"><figcaption>moss golem</figcaption></figure>
+      </div>
+      <p class="demo-cap">all ten live in one script — regenerate with <code>python3 examples/anime-cast.py</code></p>
+    </div>
+  </div>
+</section>
+
+<section id="fourdir">
+  <div class="wrap">
+    <h2>From one reference photo: <span>a 4-direction walk</span></h2>
+    <p>Show Claude a character image and ask for a game-ready sprite: it studies the reference,
+    draws a parametric 32×32 chibi from scratch (one draw function per view), and generates a
+    contact-passing walk cycle for all four directions — <strong>12 colors, one build script,
+    zero diffusion</strong>.</p>
+    <div class="anim">
+      <div class="anim-row">
+        <figure><img src="assets/capy_walk_down.gif" height="150" alt="capybara walk down"><figcaption>down</figcaption></figure>
+        <figure><img src="assets/capy_walk_left.gif" height="150" alt="capybara walk left"><figcaption>left</figcaption></figure>
+        <figure><img src="assets/capy_walk_right.gif" height="150" alt="capybara walk right"><figcaption>right</figcaption></figure>
+        <figure><img src="assets/capy_walk_up.gif" height="150" alt="capybara walk up"><figcaption>up</figcaption></figure>
+      </div>
+      <p class="demo-cap">a capybara with a sprout &amp; scarf, from a reference photo → 4 directions ×
+      4-frame walk, 140ms/frame · spritesheet + engine JSON included ·
+      regenerate with <code>python3 examples/capybara-4dir.py</code></p>
+    </div>
+  </div>
+</section>
+
+<section id="hybrid">
+  <div class="wrap">
+    <h2>Or clean AI-generated art: <span>the hybrid pipeline</span></h2>
+    <p>Point <code>pixelpipe</code> at any image model's output (or a screenshot). It recovers the
+    true pixel grid, strips baked-in backgrounds, hardens alpha, kills orphan noise, collapses the
+    color explosion, and <strong>locks everything onto one shared palette</strong> — then hands you
+    a build script to keep editing and animating. Every asset shares one color vocabulary, so a whole
+    cast looks like one game.</p>
+<pre>python3 scripts/pixelpipe.py generated.png <span class="cmt">\</span>
+  --strip-checker --max-colors 24 --display 6
+<span class="cmt"># or lock every asset to one game palette:</span>
+python3 scripts/pixelpipe.py generated.png --palette my_game</pre>
+    <div class="anim">
+      <p class="anim-head">…then animate it deterministically — the same sprite, every frame:</p>
+      <div class="anim-row">
+        <figure><img src="assets/knight_walk.gif" alt="knight walk" height="360"><figcaption>walk · 6 frames · real stride, cleaned from a codex walk-cycle sheet</figcaption></figure>
+      </div>
+      <p class="demo-cap">A codex-generated knight (174,172 colors) → <code>pixelpipe</code> dominant-block sampling (128px · 28 colors). The walk is a codex-generated 6-frame walk-cycle sheet cleaned in one pass, so every frame shares one palette. No re-rolling between frames — the build script <em>is</em> the animation.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>The quality engine: <span>see → critique → fix</span></h2>
+    <p>Claude writes a Python build script that draws the art, renders a preview,
+    <strong>looks at the image with its own vision</strong>, critiques it against a
+    professional checklist (silhouette, light source, banding, orphan pixels, palette
+    discipline…), edits the script and re-renders. Minimum 2–3 passes before shipping.</p>
+    <div class="loop">
+      <div class="step">1 · Brief<small>size, palette budget, light</small></div><div class="arrow">→</div>
+      <div class="step">2 · Build script<small>parametric drawing code</small></div><div class="arrow">→</div>
+      <div class="step">3 · Render<small>contact-sheet preview</small></div><div class="arrow">→</div>
+      <div class="step">4 · LOOK<small>Claude reads its own render</small></div><div class="arrow">→</div>
+      <div class="step">5 · Fix<small>edit code, repeat</small></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What's <span>inside</span></h2>
+    <div class="grid">
+      <div class="card"><span class="emoji">✍️</span><h3>pixelstudio.py</h3>
+        <p>Frames × layers engine: pixel-perfect primitives, palette locking, hue-shifted ramps,
+        Bayer dithering, selective outlines, masked painting via <code>only=</code>.</p></div>
+      <div class="card"><span class="emoji">🔍</span><h3>study.py</h3>
+        <p>Learns from reference art: recovers true resolution from sloppy upscales, strips baked-in
+        checkerboards, extracts palettes, ramps and technique stats.</p></div>
+      <div class="card"><span class="emoji">📚</span><h3>Knowledge base</h3>
+        <p>Proportions, silhouette-first workflow, shading & color theory, animation timing tables,
+        retro palettes (Game Boy, PICO-8, C64…), engine export guides.</p></div>
+      <div class="card"><span class="emoji">🧠</span><h3>It grows</h3>
+        <p>Study an image → Claude writes an imperative style card → those rules and palettes apply
+        to every future artwork. The chibi cast follows one learned card studied from reference art.</p></div>
+      <div class="card"><span class="emoji">🎞️</span><h3>Real deliverables</h3>
+        <p>1x PNG masters, animated GIFs with proper transparency, spritesheets with
+        Aseprite-compatible JSON for Unity / Godot / Phaser.</p></div>
+      <div class="card"><span class="emoji">♻️</span><h3>Deterministic</h3>
+        <p>The build script <em>is</em> the artwork — diffable, re-renderable, animation frames are
+        function calls, not hand-copied pixels.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Ten lines to a <span>shaded sprite</span></h2>
+<pre><span class="kw">from</span> pixelstudio <span class="kw">import</span> Sprite, ramp
+
+BODY = ramp(<span class="str">"#38b764"</span>, 5)                 <span class="cmt"># hue-shifted 5-step ramp</span>
+s = Sprite(32, 32, palette=BODY + [<span class="str">"#1a1c2c"</span>])
+
+s.ellipse(6, 12, 25, 27, BODY[0])                <span class="cmt"># darkest = silhouette</span>
+s.ellipse(5, 11, 23, 26, BODY[2], only=<span class="str">"opaque"</span>) <span class="cmt"># restack lighter, toward light</span>
+s.outline(BODY[0], where=<span class="str">"inside"</span>)              <span class="cmt"># selective outline</span>
+
+s.preview(<span class="str">"preview.png"</span>, scale=10)   <span class="cmt"># Claude LOOKS at this</span>
+s.save_gif(<span class="str">"out.gif"</span>, scale=6)</pre>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Get <span>started</span></h2>
+<pre>git clone https://github.com/Gamezxz/pixel-art-studio.git
+cp -r pixel-art-studio ~/.claude/skills/pixel-art-studio
+pip3 install pillow</pre>
+    <p style="margin-top:16px">Then ask Claude Code: <em>"draw a 64×64 dragon boss"</em> ·
+    <em>"make a 4-frame slime idle animation"</em> · <em>"study this sprite and learn its style"</em></p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    MIT © <a href="https://github.com/Gamezxz">Gamezxz</a> · built with
+    <a href="https://claude.com/claude-code">Claude Code</a> — and yes, Claude drew everything on this page
+    <div style="font-family:var(--mono);font-size:12px;color:var(--dim-2);margin-top:14px;letter-spacing:.04em">
+      pixel-art-studio · v1.0 · every pixel is a decision
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
