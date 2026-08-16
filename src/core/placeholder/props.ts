@@ -311,13 +311,13 @@ export function bannerPole(p: Painter, x: number, yBase: number, h: number, colo
 /** Vertical neon sign: armored frame, bright tube, white-hot core, glyph slots. */
 export function neonSign(p: Painter, x: number, y: number, h: number, color: string) {
   const c = hexToRgb(color);
-  p.glow(x + 4, y + Math.floor(h / 2), Math.max(6, Math.floor(h * 0.5)), c, 5, 0.5);
+  p.glow(x + 4, y + Math.floor(h / 2), Math.max(8, Math.floor(h * 0.62)), c, 5, 0.65);
   p.rect(x - 1, y - 1, 9, h + 2, [10, 12, 22]); // frame
   p.rect(x, y, 7, h, mix(c, [255, 255, 255], 0.45)); // tube face
   p.rect(x + 2, y + 1, 3, h - 2, [255, 255, 255]); // hot core
   // glyph slots
   for (let gy = y + 2; gy < y + h - 3; gy += 6) {
-    p.rect(x + 1, gy, 5, 3, mix(c, [8, 10, 18], 0.55));
+    p.rect(x + 1, gy, 5, 3, mix(c, [8, 10, 18], 0.4));
   }
   p.rect(x + 1, y - 3, 5, 2, [16, 18, 30]); // mounting bracket
 }

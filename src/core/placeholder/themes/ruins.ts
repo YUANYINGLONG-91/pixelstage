@@ -261,7 +261,7 @@ function godRays(): string {
         [sx - 60, 270],
       ],
       hexToRgb("#FFD98A"),
-      0.07 + p.rng() * 0.05
+      0.11 + p.rng() * 0.07
     );
     // dust motes caught in the shaft
     for (let d = 0; d < 12; d++) {
@@ -355,11 +355,11 @@ export function ruinsLayers(): Layer[] {
 export function ruinsEffects(): RenderEffects {
   const fx = defaultEffects();
   fx.sun = { color: "#FF9A3C", intensity: 1.45, azimuth: 300, elevation: 25 };
-  fx.ambient = { color: "#7A6A88", intensity: 1.15 };
+  fx.ambient = { color: "#8A7A9A", intensity: 1.35 };
   fx.fog = { enabled: true, color: "#0A0B10", near: 700, far: 2400 };
   fx.dof = { enabled: true, focus: 300, aperture: 0.4 };
   fx.bloom = { enabled: true, strength: 0.8, threshold: 0.42 };
-  fx.grade = { vignette: 0.55, saturation: 1.14, grain: 0.07 };
+  fx.grade = { vignette: 0.45, saturation: 1.14, grain: 0.07 };
   fx.particles = { enabled: true, color: "#FFB648", count: 90, size: 2.5, speed: 1.3 };
   return fx;
 }

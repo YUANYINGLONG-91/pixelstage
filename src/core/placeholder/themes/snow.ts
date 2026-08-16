@@ -277,11 +277,11 @@ function ground(): string {
     const x = Math.floor(p.rng() * (480 - w));
     p.dither(x, y, w, 2, hexToRgb("#C4D2EA"), shade, 0.22 + p.rng() * 0.2);
   }
-  // sastrugi ripple lines
-  for (let i = 0; i < 40; i++) {
+  // sastrugi ripple lines — sparse and faint, or they read as scan artifacts
+  for (let i = 0; i < 26; i++) {
     const y = Math.floor(p.rng() * 460);
     const x = Math.floor(p.rng() * 380);
-    p.rect(x, y, 30 + Math.floor(p.rng() * 60), 1, hexToRgb("#EDF2FC"), 0.35);
+    p.rect(x, y, 30 + Math.floor(p.rng() * 60), 1, hexToRgb("#EDF2FC"), 0.22);
   }
   // footprints: pilgrim (focal, x≈240) walked from the shrine — pairs of
   // deep blue prints receding toward the near edge

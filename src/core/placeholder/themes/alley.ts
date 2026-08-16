@@ -270,12 +270,12 @@ export function alleyLayers(): Layer[] {
 
 export function alleyEffects(): RenderEffects {
   const fx = defaultEffects();
-  fx.sun = { color: "#7A8FC8", intensity: 0.55, azimuth: 210, elevation: 55 };
-  fx.ambient = { color: "#7E86D8", intensity: 1.12 };
+  fx.sun = { color: "#7A8FC8", intensity: 0.7, azimuth: 210, elevation: 55 };
+  fx.ambient = { color: "#8A92E0", intensity: 1.32 };
   fx.fog = { enabled: true, color: "#0E2228", near: 600, far: 2200 };
   fx.dof = { enabled: true, focus: 150, aperture: 0.35 };
   fx.bloom = { enabled: true, strength: 1.0, threshold: 0.32 };
-  fx.grade = { vignette: 0.55, saturation: 1.12, grain: 0.07 };
+  fx.grade = { vignette: 0.45, saturation: 1.12, grain: 0.07 };
   fx.particles = { enabled: true, color: "#9ADBE8", count: 90, size: 2, speed: 1.4 };
   return fx;
 }
