@@ -8,7 +8,7 @@ An open-source editor for layered pixel scenes in real 3D — import your art, p
 
 👉 **[Releases](../../releases/latest)** — Windows installer & portable exe
 
-The web version runs anywhere with zero install — see the repo's About section for the live demo link.
+🌐 **[Live demo](https://yuanyinglong-91.github.io/pixelstage/)** — the full editor in your browser, zero install
 
 ## Features
 
