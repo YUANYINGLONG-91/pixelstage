@@ -82,7 +82,7 @@ export default function LayerPanel() {
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {displayLayers.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <img src="/empty-state.svg" alt="" className="w-28 opacity-80" />
+            <img src="./empty-state.svg" alt="" className="w-28 opacity-80" />
             <p className="text-sm font-medium text-text-2">{t("layers.empty")}</p>
             <p className="font-mono text-[11px] text-text-3">{t("layers.emptyHint")}</p>
           </div>

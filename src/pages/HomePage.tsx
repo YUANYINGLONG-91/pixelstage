@@ -325,7 +325,7 @@ function HowItWorks() {
       visual: (
         <div className="flex h-28 items-center justify-center rounded border border-dashed border-border-strong bg-bg-0">
           <div className="flex flex-col items-center gap-1.5">
-            <img src="/empty-state.svg" alt="" className="w-16 opacity-70" />
+            <img src="./empty-state.svg" alt="" className="w-16 opacity-70" />
             <div className="flex gap-1.5">
               <MonoChip>sky.png</MonoChip>
               <MonoChip>hills.png</MonoChip>

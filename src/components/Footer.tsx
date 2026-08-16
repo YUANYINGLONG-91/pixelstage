@@ -38,7 +38,7 @@ export default function Footer() {
       <div className="mx-auto grid max-w-[1200px] gap-10 px-4 py-14 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <img src="/logo.svg" alt="" className="h-6 w-6" />
+            <img src="./logo.svg" alt="" className="h-6 w-6" />
             <Wordmark />
           </div>
           <p className="mt-3 text-sm text-text-2">{t("footer.tagline")}</p>

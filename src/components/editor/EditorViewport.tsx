@@ -280,7 +280,7 @@ export default function EditorViewport({
       {/* empty state */}
       {empty && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-bg-0/80">
-          <img src="/empty-state.svg" alt="" className="w-32" />
+          <img src="./empty-state.svg" alt="" className="w-32" />
           <h2 className="text-lg font-semibold text-text-1">{t("vp.dropFirst")}</h2>
           <p className="font-mono text-xs text-text-3">{t("vp.dropHint")}</p>
           <div className="flex gap-3">
@@ -302,7 +302,7 @@ export default function EditorViewport({
       {/* drag-over import state */}
       {dragOver && (
         <div className="pointer-events-none absolute inset-3 flex flex-col items-center justify-center gap-4 rounded border-2 border-dashed border-amber bg-amber-dim">
-          <img src="/empty-state.svg" alt="" className="w-28" />
+          <img src="./empty-state.svg" alt="" className="w-28" />
           <p className="font-pixel text-base tracking-wide text-amber">{t("vp.release")}</p>
         </div>
       )}

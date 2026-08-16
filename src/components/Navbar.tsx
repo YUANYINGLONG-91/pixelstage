@@ -61,7 +61,7 @@ export default function Navbar() {
     >
       <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2.5" aria-label="PixelStage home">
-          <img src="/logo.svg" alt="" className="h-6 w-6" />
+          <img src="./logo.svg" alt="" className="h-6 w-6" />
           <Wordmark />
         </Link>
 

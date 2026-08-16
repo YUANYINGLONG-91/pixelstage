@@ -66,7 +66,7 @@ export default function TopBar({
       {/* left: brand + project name + save state */}
       <div className="flex min-w-0 items-center gap-3">
         <Link to="/" className="flex items-center gap-2" aria-label="Back to home">
-          <img src="/logo.svg" alt="" className="h-5 w-5" />
+          <img src="./logo.svg" alt="" className="h-5 w-5" />
           <Wordmark className="hidden text-[13px] sm:inline" />
         </Link>
         <div className="h-4 w-px bg-border" />
