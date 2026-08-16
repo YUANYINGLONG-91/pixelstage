@@ -1,99 +1,53 @@
 # PixelStage
 
-**HD-2D pixel parallax scene editor — a real desktop app, a real 3D camera.**
+**HD-2D for the rest of us.** 让每个人都用得起 HD-2D。
 
-An open-source tool for indie pixel-game developers: import layered art, place each layer at a true depth in 3D space (billboards **and** Octopath-style ground planes), light the scene, add depth-of-field and fog, preview with a real perspective camera — then export one portable `scene.json` + a three.js runtime that reproduces it exactly.
+An open-source editor for layered pixel scenes in real 3D — import your art, place each layer at true depth, light it, orbit a perspective camera, then export one portable `scene.json` plus a single-file three.js runtime. No Unreal pipeline. No engine lock-in. No cost.
 
-v2 is a ground-up rebuild of the engine: the v1 "one multiply" 2D parallax is gone. Layers now live in a perspective 3D scene (three.js/WebGL), so parallax, occlusion and foreshortening are *real*, not faked per-axis.
+开源的 HD-2D 像素场景编辑器：导入分层素材、调节真实纵深、打光、环绕镜头预览，导出一个通用 JSON 和单文件 three.js 运行时。无需虚幻引擎，不被引擎绑定，完全免费。
 
-## Quick start
+## Download · 下载
+
+👉 **[Releases](../../releases/latest)** — Windows installer & portable exe（安装版 / 免安装版）
+
+The web version runs anywhere with zero install — see the repo's About section for the live demo link.
+
+## Features · 功能
+
+- **Direct manipulation** — click sprites right in the viewport; drag to move, Shift+drag pushes depth, Ctrl+drag snaps to 8px
+  画布直接操作：点击选中、拖动移动、Shift+拖动调纵深、Ctrl+拖动吸附
+- **True 3D depth** — depth from −400 to +800 px, vertical or ground orientation, lit/unlit per layer
+  真实 3D 纵深：垂直/地面两种朝向，逐层受光控制
+- **3D camera + bookmarks** — drag to pan, right-drag to orbit, wheel to dolly; save camera shots
+  3D 镜头：平移/环绕/推拉 + 机位书签
+- **Effects stack** — DOF, fog, ambient/sun, bloom, color grade, film grain, particles
+  完整效果链：景深、雾、环境光/阳光、泛光、调色、胶片颗粒、粒子
+- **Export** — `scene.json` + one-file three.js runtime, looping WebM video, or current-frame PNG
+  导出：JSON + 单文件运行时、无缝循环 WebM 视频、当前帧 PNG 截图
+- **Local-first** — autosaves to your machine; no account, no cloud, no telemetry
+  本地优先：自动保存，无账号、无云端、无遥测
+
+## Keyboard-first · 键盘优先
+
+`Space` play path · `F` focus layer · `R` reset camera · `G` depth grid · `[` `]` depth · `-` `=` scale · `,` `.` rotate · `X` `Y` flip · `H` hide · `L` lock · `Ctrl+D` duplicate · `Ctrl+C/V` copy-paste · `?` full list
+
+## Develop · 开发
 
 ```bash
 npm install
-npm run dev          # web version → http://localhost:5173/editor
-npm run test         # vitest unit tests (scene migration, camera paths)
-npm run build        # type-check + production build
+npm run dev        # web dev server
+npm run electron:dev   # desktop app
+npm run dist       # build Windows installer (dist-electron/)
 ```
 
-### Desktop app (Windows)
+Stack: React 19 · TypeScript · Vite · three.js · zustand · Tailwind · Electron
 
-```bash
-npm run electron:dev   # build + launch the Electron app
-npm run dist           # → dist-electron/PixelStage-Setup-2.0.0.exe (NSIS installer)
-                       # → dist-electron/PixelStage-portable.exe    (no-install exe)
-```
+## Gallery · 画廊
 
-> First `npm install` may fail to download the Electron binary on some networks.
-> Fix: `ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" node node_modules/electron/install.js`
-> If `npm run dist` stalls downloading build tools, set both mirrors first:
-> `ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" ELECTRON_BUILDER_BINARIES_MIRROR="https://npmmirror.com/mirrors/electron-builder-binaries/" npm run dist`
+Four hand-crafted demo scenes ship with the app (village / snowfield / ruins / neon alley). Export your scene.json with embedded assets and open a PR against `gallery/` to add yours.
 
-The desktop app is fully sandboxed (no Node in the renderer) with native Save/Open dialogs, a real project-file workflow (`.pixelstage.json`, Ctrl+S / Ctrl+Shift+S / Ctrl+O), recent files, and file association — double-clicking a scene file opens it in PixelStage. The web version keeps working with browser download/upload fallbacks via `src/core/platform.ts`.
-
-## The core loop
-
-```
-import layers → place them in depth (billboard or ground plane) → light + DOF + fog
-→ orbit the perspective camera → export scene.json + runtime.html (three.js)
-```
-
-## The depth model (scene.json v2)
-
-Each layer is a textured plane in a 3D scene:
-
-| field | meaning |
-|---|---|
-| `depth` | z position in px. `0` = focal plane (1:1 pixels) · `>0` farther · `<0` nearer than the focal plane |
-| `orientation` | `vertical` = billboard facing the camera · `ground` = floor plane receding to the horizon |
-| `lit` | `true` = shaded by scene lights · `false` = full-bright (sky, glow overlays) |
-| `scale`, `offsetX/Y` | size and world position (px) |
-
-Parallax is perspective: a layer at `depth` shifts/scales by `D / (D + depth)`, where `D` = camera distance (`focalDistance(canvas, fov)` ≈ 742px at 960×540/40°).
-
-| depth | reads as | typical use |
-|---|---|---|
-| −400…−100 | in front of the focal plane | foreground occluders, grass fringe (blurs with DOF) |
-| 0 | focal plane | the ground the player walks on, hero props |
-| +100…+300 | midground | trees, facades, pillars |
-| +400…+800 | far | mountains, skyline, sky (scale up to compensate) |
-
-v1 files (`factorX/factorY`) migrate automatically on open: `depth = D·(1 − factorX)`.
-
-## Editor
-
-- **Camera**: drag = pan · wheel = dolly zoom (40%–400%) · right-drag / Alt-drag = orbit · `R` = reframe · space = play camera path (sweep / orbit / dolly)
-- **Effects**: depth-of-field (focus + aperture), fog, ambient + directional sun — per scene, in the inspector when nothing is selected
-- **Undo/redo**: full history (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), slider drags coalesce into one step
-- **Export**: `scene.json` (embedded base64) **or** a zip with `scene.json` + `assets/*.png` — the files are really in there
-- **Autosave**: localStorage + IndexedDB, v1 saves migrate silently
-
-## Tech decisions
-
-| Choice | Why | Why not the alternative |
-|---|---|---|
-| React 19 + TS + Vite | Mainstream stack, component model fits panel tools | — |
-| **three.js (plain, no R3F)** | Real perspective camera/lights/DOF; the render loop stays imperative and matches the exported runtime | Canvas 2D can't do perspective; r3f adds weight for zero gain here |
-| Electron (sandboxed + preload IPC) | Real desktop app: native dialogs, project files, installer | The old bat+Chrome `--app` wrapper was a browser in a trench coat |
-| Zustand + snapshot history | Editor = single-document state tree; snapshots make undo/redo ~40 lines | Command pattern would touch every action |
-| localStorage + IndexedDB | Local-first, zero backend | A backend is a liability |
-
-Engine core (`src/core/`): `stage3d.ts` (three.js scene), `textures.ts` (NearestFilter texture cache), `cameraPaths.ts` (pure, tested), `scene.ts` (v1↔v2 migration + runtime snippet), `types.ts` (schema v2). No React dependencies, vitest-covered.
-
-## Project layout
-
-```
-src/
-  core/          engine + pure functions — stage3d, camera paths, scene (de)serialization, zip export, platform seam
-  store/         zustand stores (scene document + undo history, project file, toasts)
-  components/    StageCanvas3D (shared render loop), editor panels, ui/ primitives
-  pages/         / /editor /guide /gallery
-electron/        main process (IPC, dialogs, recent files) + preload bridge
-```
-
-## Assets
-
-Demo scenes use **programmatically generated placeholder layers** (seeded, deterministic — see `src/core/placeholder.ts`): each theme is a true 2.5D set with a ground plane, staggered billboards and per-theme lighting. Drop real pixel art in and tune depths — the schema doesn't change.
+内置四个手工场景（村庄黄昏 / 月夜雪原 / 火把遗迹 / 雨夜霓虹巷）。欢迎导出你的场景提 PR 进画廊。
 
 ## License
 
-MIT — use the tool, the JSON, and the runtime snippet in any game, commercial or not.
+[MIT](LICENSE) — use the tool, the JSON, and the runtime snippet in any game, commercial or not.
