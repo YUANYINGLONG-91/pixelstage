@@ -14,6 +14,7 @@ import { PATH_PERIOD, type PathPreset } from "@/core/cameraPaths";
 import { getEditorCanvas } from "@/core/editorCanvas";
 import { saveBlob } from "@/core/platform";
 import { buildSceneZip } from "@/core/zip";
+import EngineExportTab from "@/components/editor/EngineExportTab";
 import { saveProjectAs } from "@/store/projectFile";
 import type { SceneFile } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
@@ -98,6 +99,7 @@ export default function ExportModal({
             <TabsTrigger value="runtime">RUNTIME.HTML</TabsTrigger>
             <TabsTrigger value="video">VIDEO.WEBM</TabsTrigger>
             <TabsTrigger value="snapshot">SNAPSHOT.PNG</TabsTrigger>
+            <TabsTrigger value="engine">ENGINE</TabsTrigger>
           </TabsList>
 
           <TabsContent value="json">
@@ -146,6 +148,10 @@ export default function ExportModal({
 
           <TabsContent value="snapshot">
             <SnapshotTab slugName={slug(name)} />
+          </TabsContent>
+
+          <TabsContent value="engine">
+            <EngineExportTab />
           </TabsContent>
         </Tabs>
 
