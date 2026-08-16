@@ -77,9 +77,25 @@ export const dict = {
   "vp.gotoBookmark": { en: "Jump to bookmark", zh: "跳转到机位" },
   "vp.delBookmark": { en: "Delete bookmark", zh: "删除机位" },
   "vp.playTip": { en: "Play / pause camera path (Space)", zh: "播放 / 暂停运镜（空格）" },
-  "vp.gridTip": { en: "Toggle depth grid", zh: "切换深度网格" },
+  "vp.gridTip": { en: "Toggle depth grid (G)", zh: "切换深度网格（G）" },
   "vp.resetCamTip": { en: "Reset camera (R)", zh: "重置镜头（R）" },
   "vp.selHint": { en: "drag to move · Shift+drag depth · Esc clear", zh: "拖动移动 · Shift+拖动调纵深 · Esc 取消" },
+
+  /* ---------------------------- gesture hint bar ---------------------------- */
+  "hint.pan": { en: "pan", zh: "平移" },
+  "hint.orbit": { en: "orbit", zh: "环绕" },
+  "hint.wheel": { en: "dolly", zh: "推拉" },
+  "hint.pick": { en: "select", zh: "选中" },
+  "hint.depth": { en: "depth", zh: "纵深" },
+  "hint.focus": { en: "focus layer", zh: "聚焦图层" },
+  "hint.more": { en: "all shortcuts", zh: "全部快捷键" },
+  "hint.dismiss": { en: "Hide this hint bar", zh: "隐藏提示条" },
+  "hint.k.leftDrag": { en: "left-drag", zh: "左键拖动" },
+  "hint.k.rightDrag": { en: "right-drag", zh: "右键拖动" },
+  "hint.k.wheel": { en: "wheel", zh: "滚轮" },
+  "hint.k.clickSprite": { en: "click sprite", zh: "点击图层" },
+  "hint.k.shiftDrag": { en: "Shift+drag", zh: "Shift+拖动" },
+  "hint.k.f": { en: "F", zh: "F" },
 
   "insp.title": { en: "Inspector", zh: "检查器" },
   "insp.name": { en: "NAME", zh: "名称" },
@@ -195,6 +211,15 @@ export const dict = {
   "export.record": { en: "Record loop", zh: "开始录制" },
   "export.recording": { en: "Recording…", zh: "录制中…" },
   "export.videoUnsupported": { en: "WebM recording is not supported here", zh: "当前环境不支持 WebM 录制" },
+  "export.snapBlurb": {
+    en: "Save the current frame as a PNG at canvas resolution. HUD stays out of the shot — only what the WebGL canvas renders is captured.",
+    zh: "把当前画面按画布分辨率存成 PNG。HUD 不会入镜 —— 只截取 WebGL 画布渲染的内容。",
+  },
+  "export.snapHint": {
+    en: "grid & selection outlines are drawn in GL — press Esc and toggle the grid off (G) for a clean frame",
+    zh: "网格和选中描边是 GL 绘制的会入镜 —— 想要纯净画面请先按 Esc 取消选中、按 G 关掉网格",
+  },
+  "export.snapSave": { en: "Save PNG", zh: "保存 PNG" },
 
   "open.title": { en: "OPEN PROJECT", zh: "打开项目" },
   "open.desc": { en: ".pixelstage.json or any exported scene.json", zh: ".pixelstage.json 或任何导出的 scene.json" },
@@ -239,6 +264,9 @@ export const dict = {
   "sc.scaleNudge": { en: "scale ∓0.05 (Shift 0.25)", zh: "缩放 ∓0.05（Shift 0.25）" },
   "sc.copyPaste": { en: "copy / paste layers", zh: "复制 / 粘贴图层" },
   "sc.selectAll": { en: "select all layers", zh: "全选图层" },
+  "sc.focus": { en: "frame selected layer", zh: "聚焦选中图层" },
+  "sc.gridToggle": { en: "toggle depth grid", zh: "切换深度网格" },
+  "sc.rotNudge": { en: "rotate ∓1° (Shift 15°)", zh: "旋转 ∓1°（Shift 15°）" },
 
   "toast.restored": { en: "Project restored from local save", zh: "已从本地存档恢复项目" },
   "toast.saveFailed": {
@@ -247,33 +275,37 @@ export const dict = {
   },
 
   /* ------------------------------- onboarding ------------------------------- */
-  "onb.s1t": { en: "Step 1 / 5 — Load a scene", zh: "第 1 步 / 共 5 步 —— 载入场景" },
+  "onb.s1t": { en: "Step 1 / 6 — Load a scene", zh: "第 1 步 / 共 6 步 —— 载入场景" },
   "onb.s1b": {
     en: "Click \"Load demo scene\" in the center of the canvas, or drag your own PNG/JPG layers in (background first, foreground last).",
     zh: "点击画布中央的「加载示例场景」，或直接把 PNG/JPG 图片拖进来（先背景，再前景）。",
   },
-  "onb.s2t": { en: "Step 2 / 5 — Drag the camera", zh: "第 2 步 / 共 5 步 —— 拖动镜头" },
+  "onb.s2t": { en: "Step 2 / 6 — Drag the camera", zh: "第 2 步 / 共 6 步 —— 拖动镜头" },
   "onb.s2b": {
     en: "Drag to pan, scroll to dolly, right-drag to orbit — near layers move fast, far layers barely drift. That's real perspective parallax. The path selector (bottom right) plays a cinematic sweep, orbit or dolly — and the bookmark chips (top right) save camera shots you can jump back to.",
     zh: "拖动平移、滚轮推拉、右键拖动环绕 —— 近景跑得快、远景几乎不动，这是真实的透视视差。右下角的运镜选择器可以自动播放平移、环绕或推拉镜头；右上角的机位书签可以保存镜头，随时跳回。",
   },
-  "onb.s3t": { en: "Step 3 / 5 — Grab sprites directly", zh: "第 3 步 / 共 5 步 —— 直接拖拽图层" },
+  "onb.s3t": { en: "Step 3 / 6 — Grab sprites directly", zh: "第 3 步 / 共 6 步 —— 直接拖拽图层" },
   "onb.s3b": {
     en: "Click any sprite in the viewport to select it — no list-diving. Drag to move it, Shift+drag to push it deeper, Ctrl+drag to snap to 8px. Shift+click adds to the selection so you can move a whole group at once.",
     zh: "在画布里直接点击任意图层即可选中 —— 不用翻列表。拖动移动、Shift+拖动调纵深、Ctrl+拖动吸附 8px。Shift+点击可以加选，一次移动整组图层。",
   },
-  "onb.s4t": { en: "Step 4 / 5 — Depth & appearance", zh: "第 4 步 / 共 5 步 —— 纵深与外观" },
+  "onb.s4t": { en: "Step 4 / 6 — Depth & appearance", zh: "第 4 步 / 共 6 步 —— 纵深与外观" },
   "onb.s4b": {
     en: "In the inspector: depth 0 sits on the focal plane, positive recedes, negative jumps toward the camera. Try the \"ground\" orientation for floors, toggle \"lit\" off for skies and glows, and dial in opacity, rotation and flip per layer.",
     zh: "在右侧检查器里：depth 0 位于焦平面，正值后退，负值冲向镜头。地板试试「地面」朝向，天空和发光层关掉「受光」，每层还可以调不透明度、旋转和翻转。",
   },
-  "onb.s5t": { en: "Step 5 / 5 — Export JSON or WebM", zh: "第 5 步 / 共 5 步 —— 导出 JSON 或 WebM" },
+  "onb.s5t": { en: "Step 5 / 6 — Export JSON or WebM", zh: "第 5 步 / 共 6 步 —— 导出 JSON 或 WebM" },
   "onb.s5b": {
     en: "Press Ctrl+E to export. scene.json plays anywhere with the included single-file three.js runtime — and the VIDEO.WEBM tab records one full camera loop as a seamlessly looping clip, perfect for sharing your scene.",
     zh: "按 Ctrl+E 导出。scene.json 配合附带的单文件 three.js 运行时可在任何地方播放；VIDEO.WEBM 标签页还能按当前运镜完整录制一圈，输出无缝循环的视频，方便分享你的场景。",
   },
-  "onb.next": { en: "Next", zh: "下一步" },
-  "onb.prev": { en: "Back", zh: "上一步" },
+  "onb.s6t": { en: "Step 6 / 6 — Mouse gestures", zh: "第 6 步 / 共 6 步 —— 鼠标手势" },
+  "onb.s6b": {
+    en: "Everything above is one gesture away. This cheat sheet also lives at the top of the canvas — dismiss it anytime, and press ? for the full shortcut list.",
+    zh: "上面的一切都只差一个手势。这张速查表也会常驻画布顶部 —— 随时可以关掉，按 ? 查看完整快捷键列表。",
+  },
+  "onb.next": { en: "Next", zh: "下一步" },  "onb.prev": { en: "Back", zh: "上一步" },
   "onb.skip": { en: "Skip tour", zh: "跳过教程" },
   "onb.done": { en: "Start creating", zh: "开始创作" },
   "onb.help": { en: "Tutorial", zh: "新手教程" },

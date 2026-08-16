@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GESTURES } from "@/components/editor/GestureBar";
 import { useT } from "@/i18n";
 import type { DictKey } from "@/i18n/dict";
 
-const ONBOARDED_KEY = "pixelstage.onboarded.v2";
+const ONBOARDED_KEY = "pixelstage.onboarded.v2.2";
 
 const STEPS: { title: DictKey; body: DictKey }[] = [
   { title: "onb.s1t", body: "onb.s1b" },
@@ -13,6 +14,7 @@ const STEPS: { title: DictKey; body: DictKey }[] = [
   { title: "onb.s3t", body: "onb.s3b" },
   { title: "onb.s4t", body: "onb.s4b" },
   { title: "onb.s5t", body: "onb.s5b" },
+  { title: "onb.s6t", body: "onb.s6b" },
 ];
 
 export function useOnboarding() {
@@ -62,6 +64,20 @@ export default function Onboarding({
                 <p className="mt-2 text-[13px] leading-relaxed text-text-2">
                   {t(STEPS[step].body)}
                 </p>
+                {last && (
+                  <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 rounded-sm border border-border bg-bg-3/50 p-3">
+                    {GESTURES.map((g) => (
+                      <div key={g.keys} className="flex items-center justify-between gap-2">
+                        <kbd className="rounded-sm border border-border bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-1">
+                          {t(g.keys)}
+                        </kbd>
+                        <span className="text-right font-mono text-[10px] text-text-3">
+                          {t(g.label)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => onClose(true)}

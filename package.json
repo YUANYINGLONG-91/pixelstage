@@ -1,7 +1,7 @@
 {
   "name": "pixelstage",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "description": "2.5D pixel parallax scene editor — HD-2D for the rest of us",
   "main": "electron/main.cjs",

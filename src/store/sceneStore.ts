@@ -12,7 +12,7 @@ import {
   type SceneFile,
 } from "@/core/types";
 import type { PathPreset } from "@/core/cameraPaths";
-import { clearBitmaps, evictBitmap, getBitmap } from "@/core/bitmaps";
+import { clearBitmaps, evictBitmap, getBitmap, peekBitmap } from "@/core/bitmaps";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_DIM = 4096;
@@ -64,6 +64,8 @@ interface SceneState {
   bookmarks: Camera3D[];
   playing: boolean;
   pathPreset: PathPreset;
+  /** depth-grid overlay visibility (UI-only: not persisted, not undoable) */
+  gridVisible: boolean;
   /** current project file path (Electron); null = never saved to disk */
   filePath: string | null;
   /** unsaved-changes indicator */
@@ -83,6 +85,9 @@ interface SceneState {
   selectLayer: (id: string | null, opts?: { additive?: boolean }) => void;
   setPlaying: (v: boolean) => void;
   togglePlaying: () => void;
+  toggleGrid: () => void;
+  /** aim the camera at the primary selected layer and dolly to fit it in view */
+  focusSelected: () => void;
   markSaved: (path: string | null) => void;
 
   addBookmark: () => void;
@@ -173,6 +178,7 @@ export const useSceneStore = create<SceneState>((set, get) => {
     bookmarks: [],
     playing: false,
     pathPreset: "sweep",
+    gridVisible: false,
     filePath: null,
     dirty: false,
     past: [],
@@ -260,6 +266,43 @@ export const useSceneStore = create<SceneState>((set, get) => {
 
     setPlaying: (v) => set({ playing: v }),
     togglePlaying: () => set((s) => ({ playing: !s.playing })),
+    toggleGrid: () => set((s) => ({ gridVisible: !s.gridVisible })),
+
+    focusSelected: () => {
+      const s = get();
+      const l = s.layers.find((x) => x.id === s.selectedId);
+      if (!l) return;
+      const bmp = peekBitmap(l.id, l.src);
+      const w = (bmp?.width ?? 256) * l.scale;
+      const h = (bmp?.height ?? 256) * l.scale;
+      // UI coords (y down); stage3d flips y internally
+      const target = { x: l.offsetX + w / 2, y: l.offsetY + h / 2, z: -l.depth };
+      const tan = Math.tan((s.camera.fov * Math.PI) / 360);
+      const aspect = s.canvasSize.width / s.canvasSize.height;
+      const dist = Math.max(((h / 2) * 1.25) / tan, ((w / 2) * 1.25) / (tan * aspect), 60);
+      // keep the current viewing direction, just re-aim and re-dolly
+      let dx = s.camera.position.x - s.camera.target.x;
+      let dy = s.camera.position.y - s.camera.target.y;
+      let dz = s.camera.position.z - s.camera.target.z;
+      const len = Math.hypot(dx, dy, dz);
+      if (len < 1e-3) {
+        dx = 0;
+        dy = 0;
+        dz = 1;
+      } else {
+        dx /= len;
+        dy /= len;
+        dz /= len;
+      }
+      pushHistory("camera-focus");
+      set({
+        camera: {
+          target,
+          position: { x: target.x + dx * dist, y: target.y + dy * dist, z: target.z + dz * dist },
+          fov: s.camera.fov,
+        },
+      });
+    },
 
     markSaved: (path) => set({ dirty: false, filePath: path }),
 

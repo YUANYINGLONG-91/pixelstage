@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import StageCanvas3D from "@/components/StageCanvas3DLazy";
+import GestureBar from "@/components/editor/GestureBar";
 import { PATH_PRESETS } from "@/core/cameraPaths";
 import { focalDistance } from "@/core/types";
 import { useSceneStore } from "@/store/sceneStore";
@@ -20,9 +21,11 @@ const PRESET_KEYS: Record<(typeof PATH_PRESETS)[number], DictKey> = {
 export default function EditorViewport({
   dragOver,
   onBrowse,
+  onOpenShortcuts,
 }: {
   dragOver: boolean;
   onBrowse: () => void;
+  onOpenShortcuts: () => void;
 }) {
   const {
     canvasSize,
@@ -44,12 +47,13 @@ export default function EditorViewport({
     addBookmark,
     removeBookmark,
     applyBookmark,
+    gridVisible,
+    toggleGrid,
   } = useSceneStore();
   const boxRef = useRef<HTMLDivElement>(null);
   const [stageW, setStageW] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [crosshairIdle, setCrosshairIdle] = useState(false);
-  const [gridVisible, setGridVisible] = useState(false);
   const t = useT();
 
   // fit the stage into the available viewport box, preserving aspect ratio
@@ -134,6 +138,9 @@ export default function EditorViewport({
                 <div className="absolute left-0 top-1/2 h-px w-4 -translate-y-1/2 bg-amber" />
               </div>
             </div>
+
+            {/* gesture cheat sheet, dismissible */}
+            {!empty && !dragging && <GestureBar onOpenShortcuts={onOpenShortcuts} />}
 
             {/* HUD: camera readout */}
             <div className="absolute left-2 top-2 rounded-sm border border-border bg-bg-2/85 px-2 py-1 font-mono text-[11px] text-text-3">
@@ -240,7 +247,7 @@ export default function EditorViewport({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => setGridVisible((v) => !v)}
+                    onClick={toggleGrid}
                     className={cn(
                       "flex items-center gap-1 rounded-sm border border-border bg-bg-2/85 px-2 py-1.5 font-mono text-[10px] transition-colors",
                       gridVisible ? "text-amber" : "text-text-3 hover:text-amber"

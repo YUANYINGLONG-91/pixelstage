@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Copy, Download, Video } from "lucide-react";
+import { Check, Copy, Download, Camera, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -97,6 +97,7 @@ export default function ExportModal({
             <TabsTrigger value="json">SCENE.JSON</TabsTrigger>
             <TabsTrigger value="runtime">RUNTIME.HTML</TabsTrigger>
             <TabsTrigger value="video">VIDEO.WEBM</TabsTrigger>
+            <TabsTrigger value="snapshot">SNAPSHOT.PNG</TabsTrigger>
           </TabsList>
 
           <TabsContent value="json">
@@ -141,6 +142,10 @@ export default function ExportModal({
 
           <TabsContent value="video">
             <VideoRecorder slugName={slug(name)} />
+          </TabsContent>
+
+          <TabsContent value="snapshot">
+            <SnapshotTab slugName={slug(name)} />
           </TabsContent>
         </Tabs>
 
@@ -255,6 +260,39 @@ function VideoRecorder({ slugName }: { slugName: string }) {
         <p className="font-mono text-[10px] leading-relaxed text-text-3">{t("export.videoHint")}</p>
         <Button variant="primary" size="sm" onClick={() => void record()} disabled={recording}>
           <Video /> {recording ? t("export.recording") : t("export.record")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Grabs the live editor canvas as a PNG (preserveDrawingBuffer is on, so
+ * toBlob sees the last presented frame). HUD is DOM and never captured;
+ * GL-drawn grid & selection outlines are.
+ */
+function SnapshotTab({ slugName }: { slugName: string }) {
+  const t = useT();
+
+  const save = () => {
+    const canvas = getEditorCanvas();
+    if (!canvas) return;
+    canvas.toBlob((b) => {
+      if (!b) return;
+      const filename = `${slugName}-frame.png`;
+      void saveBlob(b, { defaultPath: filename }).then((saved) => {
+        if (saved) toast(`${t("export.downloaded")} ${filename}`, { variant: "success" });
+      });
+    }, "image/png");
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-text-2">{t("export.snapBlurb")}</p>
+      <div className="flex items-center justify-between">
+        <p className="font-mono text-[10px] leading-relaxed text-text-3">{t("export.snapHint")}</p>
+        <Button variant="primary" size="sm" onClick={save}>
+          <Camera /> {t("export.snapSave")}
         </Button>
       </div>
     </div>

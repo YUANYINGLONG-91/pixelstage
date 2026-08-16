@@ -114,7 +114,13 @@ export class Stage3D {
   constructor(canvas: HTMLCanvasElement, size: CanvasSize) {
     this.canvas = canvas;
     this.size = { ...size };
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });
+    // preserveDrawingBuffer: PNG snapshot export reads the canvas via toBlob
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: false,
+      alpha: true,
+      preserveDrawingBuffer: true,
+    });
     this.renderer.setClearColor(0x000000, 0);
     // ACES + exposure: the filmic highlight rolloff is half of the Octopath look
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;

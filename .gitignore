@@ -3,5 +3,7 @@ dist
 dist-electron
 dist-ssr
 *.local
+.env
+.env.*
 .DS_Store
 .shots/

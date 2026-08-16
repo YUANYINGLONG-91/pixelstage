@@ -166,6 +166,14 @@ export default function EditorPage() {
         case "R":
           s.resetCamera();
           break;
+        case "f":
+        case "F":
+          if (s.selectedId) s.focusSelected();
+          break;
+        case "g":
+        case "G":
+          s.toggleGrid();
+          break;
         case "Delete":
         case "Backspace":
           if (s.selectedIds.length > 1) {
@@ -231,6 +239,20 @@ export default function EditorPage() {
           );
           break;
         }
+        case ",":
+        case "<":
+        case ".":
+        case ">": {
+          if (!s.selectedIds.length) return;
+          e.preventDefault();
+          const d = (e.key === "." || e.key === ">" ? 1 : -1) * (e.shiftKey ? 15 : 1);
+          s.updateLayers(
+            s.selectedIds,
+            (l) => ({ rotation: wrapDeg(l.rotation + d) }),
+            { coalesceKey: "nudge:rot" }
+          );
+          break;
+        }
         case "Escape":
           s.selectLayer(null);
           break;
@@ -276,7 +298,11 @@ export default function EditorPage() {
           <LayerPanel />
         </div>
         <ErrorBoundary compact onReset={() => window.location.reload()}>
-          <EditorViewport dragOver={dragOver} onBrowse={() => fileInputRef.current?.click()} />
+          <EditorViewport
+            dragOver={dragOver}
+            onBrowse={() => fileInputRef.current?.click()}
+            onOpenShortcuts={() => setShortcutsOpen(true)}
+          />
         </ErrorBoundary>
         <Onboarding open={onboarding.open} onClose={onboarding.close} />
         <div className="hidden md:flex">
@@ -303,4 +329,9 @@ export default function EditorPage() {
       <ShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
+}
+
+/** wrap degrees into (−180, 180] */
+function wrapDeg(r: number): number {
+  return ((((r + 180) % 360) + 360) % 360) - 180;
 }

@@ -11,6 +11,8 @@ import type { DictKey } from "@/i18n/dict";
 const SHORTCUTS: [string, DictKey][] = [
   ["Space", "sc.toggleSweep"],
   ["R", "sc.resetCam"],
+  ["F", "sc.focus"],
+  ["G", "sc.gridToggle"],
   ["Click sprite", "sc.pick"],
   ["Drag sprite", "sc.dragMove"],
   ["Shift+Drag sprite", "sc.dragDepth"],
@@ -22,6 +24,7 @@ const SHORTCUTS: [string, DictKey][] = [
   ["X · Y", "sc.flip"],
   ["[ · ]", "sc.depthNudge"],
   ["− · =", "sc.scaleNudge"],
+  [", · .", "sc.rotNudge"],
   ["Ctrl/⌘ C · V", "sc.copyPaste"],
   ["Ctrl/⌘ A", "sc.selectAll"],
   ["Ctrl/⌘ Z", "sc.undo"],

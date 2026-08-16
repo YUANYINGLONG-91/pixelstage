@@ -44,7 +44,7 @@ export default function StatusBar({
           local {(storageBytes / 1024 / 1024).toFixed(1)}MB
         </span>
         {savedAt && <span>{t("ed.saved")} {savedAt.toTimeString().slice(0, 5)}</span>}
-        <span>webgl · hd-2d · v2.1</span>
+        <span>webgl · hd-2d · v2.2</span>
         <button onClick={onOpenShortcuts} className="hover:text-amber">
           {t("sb.shortcuts")}
         </button>
