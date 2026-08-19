@@ -41,7 +41,7 @@ export function buildEngineZip(
       files = rpgmakerFiles(pack, opts);
       break;
     case "web":
-      files = webFiles(pack);
+      files = webFiles(scene);
       break;
   }
   return {

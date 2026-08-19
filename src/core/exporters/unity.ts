@@ -1,33 +1,57 @@
-import { baseFiles, text, type AssetPack } from "./common";
+import { strToU8 } from "fflate";
+import { text, type AssetPack } from "./common";
 
 /**
- * Unity exporter: Unity scene YAML needs GUID-matched .meta files to be
- * reliable, so instead we generate a C# editor script that rebuilds the
- * scene from scene.json at import time (menu: Tools > PixelStage > Import).
- * Coordinates are mapped from three-space (y up, camera at +z) to Unity's
- * left-handed space (camera looking +z) via z → -z.
+ * Unity exporter: the zip is a complete, minimal Unity project — open it from
+ * Unity Hub ("Add project from disk") and the scene rebuilds itself on first
+ * load (an editor script auto-imports scene.json once; menu item stays for
+ * re-imports). Coordinates map from three-space (y up, camera at +z) to
+ * Unity's left-handed space (camera looking +z) via z → -z.
  */
 export function unityFiles(pack: AssetPack): Record<string, Uint8Array> {
-  return {
-    ...baseFiles(pack),
-    "Editor/PixelStageImporter.cs": text(UNITY_IMPORTER_CS),
-    "README-unity.txt": text(UNITY_README),
-  };
+  const files: Record<string, Uint8Array> = {};
+  for (const [path, bytes] of Object.entries(pack.files)) {
+    files[`Assets/PixelStage/${path}`] = bytes;
+  }
+  files["Assets/PixelStage/scene.json"] = strToU8(JSON.stringify(pack.scene, null, 2));
+  files["Assets/PixelStage/Editor/PixelStageImporter.cs"] = text(UNITY_IMPORTER_CS);
+  files["Packages/manifest.json"] = text(UNITY_MANIFEST);
+  files["ProjectSettings/ProjectVersion.txt"] = text(UNITY_PROJECT_VERSION);
+  files["README-unity.txt"] = text(UNITY_README);
+  return files;
 }
+
+// Empty dependency set — Unity regenerates everything else on first open.
+const UNITY_MANIFEST = `{
+  "dependencies": {}
+}
+`;
+
+// Any 2022.3 LTS opens the project; Hub offers a version swap if you have another.
+const UNITY_PROJECT_VERSION = `m_EditorVersion: 2022.3.22f1
+`;
 
 const UNITY_README = `PixelStage → Unity
 ================
 
-Import steps
-------------
-1. Extract this zip anywhere inside your project's Assets folder
-   (e.g. Assets/PixelStage/). scene.json, assets/ and Editor/ should
-   keep their relative layout.
-2. Wait for Unity to compile the editor script.
-3. Menu: Tools > PixelStage > Import Scene.json — pick the scene.json
-   from this package.
-4. A GameObject tree with all layers, a camera, fog and a sun light is
-   created in the open scene.
+This zip IS a complete Unity project — no manual setup.
+
+Open & play
+-----------
+1. Extract this zip anywhere.
+2. Unity Hub → "Add" → "Add project from disk" → pick the extracted folder.
+3. Open the project. Unity compiles the importer, then automatically
+   rebuilds the PixelStage scene (layers, camera, fog, sun) into the open
+   scene. Press Play.
+
+If Hub warns about the editor version (2022.3 LTS is stamped in
+ProjectSettings/ProjectVersion.txt), pick any installed 2021.3+ version —
+the importer script works across versions.
+
+Re-import / tweak
+-----------------
+Menu: Tools > PixelStage > Import Scene.json re-runs the importer by hand
+(use after editing scene.json). Auto-import runs only once per project.
 
 Notes
 -----
@@ -81,6 +105,35 @@ public static class PixelStageImporter
     {
         string path = EditorUtility.OpenFilePanel("Select PixelStage scene.json", Application.dataPath, "json");
         if (string.IsNullOrEmpty(path)) return;
+        ImportFrom(path);
+    }
+
+    // Auto-import once when the generated project is opened for the first time.
+    [InitializeOnLoadMethod]
+    static void AutoImport()
+    {
+        EditorApplication.delayCall += () =>
+        {
+            string key = "PixelStage.Imported." + Application.dataPath.GetHashCode();
+            if (EditorPrefs.GetBool(key, false)) return;
+            string path = FindSceneJson();
+            if (path == null) return;
+            EditorPrefs.SetBool(key, true);
+            ImportFrom(path);
+        };
+    }
+
+    static string FindSceneJson()
+    {
+        foreach (string f in Directory.GetFiles(Application.dataPath, "scene.json", SearchOption.AllDirectories))
+        {
+            if (f.Replace('\\\\', '/').Contains("/PixelStage/")) return f;
+        }
+        return null;
+    }
+
+    static void ImportFrom(string path)
+    {
         var scene = JsonUtility.FromJson<SceneFile>(File.ReadAllText(path));
         string dir = Path.GetDirectoryName(path).Replace('\\\\', '/');
         float H = scene.canvas.height;

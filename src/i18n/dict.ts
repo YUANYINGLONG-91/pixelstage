@@ -222,28 +222,28 @@ export const dict = {
   "export.snapSave": { en: "Save PNG", zh: "保存 PNG" },
 
   "export.engineBlurb": {
-    en: "Export a ready-to-import package for your game engine: layer images + scene.json + an engine-specific scene/importer + setup README.",
-    zh: "导出为你的游戏引擎准备好的包：图层图片 + scene.json + 引擎专属场景/导入脚本 + 安装说明。",
+    en: "Pick an engine and export a zip that opens directly in it — no manual JSON wrangling.",
+    zh: "选一个引擎，导出的 zip 可以直接在其中打开运行 —— 无需手动搬运 JSON。",
   },
   "engine.godot.desc": {
-    en: "Godot 4 — ready-made scene.tscn with meshes, camera, sun, fog & glow. Extract into the project root.",
-    zh: "Godot 4 —— 生成现成的 scene.tscn（含网格、相机、阳光、雾和辉光），解压到项目根目录即可。",
+    en: "Complete Godot 4 project — Import project.godot in the Project Manager, press Play.",
+    zh: "完整的 Godot 4 工程 —— 在项目管理器里导入 project.godot，直接按运行。",
   },
   "engine.unity.desc": {
-    en: "Unity — C# editor importer script. Extract into Assets, then Tools > PixelStage > Import Scene.json.",
-    zh: "Unity —— 生成 C# 编辑器导入脚本。解压进 Assets 后，菜单 Tools > PixelStage > Import Scene.json 一键重建。",
+    en: "Complete Unity project — add it in Unity Hub and open; the scene rebuilds itself on first load.",
+    zh: "完整的 Unity 工程 —— 在 Unity Hub 添加并打开，首次加载自动重建场景。",
   },
   "engine.cocos.desc": {
-    en: "Cocos Creator 3.x — runtime component that rebuilds the scene from resources/pixelstage/.",
-    zh: "Cocos Creator 3.x —— 运行时组件脚本，从 resources/pixelstage/ 自动重建场景。",
+    en: "Cocos Creator 3.x — files pre-arranged in assets/ layout; one folder copy, add the component, Play.",
+    zh: "Cocos Creator 3.x —— 文件已按 assets/ 目录摆好，整体拷贝后挂一个组件即可运行。",
   },
   "engine.rpgmaker.desc": {
     en: "RPG Maker MV/MZ — flattened parallax background (current framing) + layered PNGs for layer plugins.",
     zh: "RPG Maker MV/MZ —— 扁平化视差背景图（当前取景）+ 供图层插件使用的分层 PNG。",
   },
   "engine.web.desc": {
-    en: "Plain web — standalone index.html (three.js runtime) + scene.json + assets. Serve and play.",
-    zh: "纯网页 —— 独立 index.html（three.js 运行时）+ scene.json + 资源，起个静态服务器即可运行。",
+    en: "Self-contained index.html — double-click and play; everything embedded, only three.js loads from CDN.",
+    zh: "单文件 index.html —— 双击即玩；场景图全部内嵌，仅 three.js 从 CDN 加载。",
   },
   "engine.export": { en: "Export .zip", zh: "导出 .zip" },
   "engine.exporting": { en: "Packing…", zh: "打包中…" },

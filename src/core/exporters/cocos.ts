@@ -1,29 +1,34 @@
-import { baseFiles, text, type AssetPack } from "./common";
+import { strToU8 } from "fflate";
+import { text, type AssetPack } from "./common";
 
 /**
- * Cocos Creator 3.x exporter: generates a runtime component that rebuilds the
- * scene from scene.json + textures under assets/resources/pixelstage/.
+ * Cocos Creator 3.x exporter: files are pre-arranged in the project's assets/
+ * layout (resources/pixelstage/ + scripts/), so importing is one folder copy.
+ * The runtime component rebuilds the scene from scene.json at Play time.
  * Cocos is right-handed y-up like three.js, so placements carry over 1:1.
  */
 export function cocosFiles(pack: AssetPack): Record<string, Uint8Array> {
-  return {
-    ...baseFiles(pack),
-    "PixelStageScene.ts": text(COCOS_SCRIPT),
-    "README-cocos.txt": text(COCOS_README),
-  };
+  const files: Record<string, Uint8Array> = {};
+  for (const [path, bytes] of Object.entries(pack.files)) {
+    files[path.replace(/^assets\//, "assets/resources/pixelstage/")] = bytes;
+  }
+  files["assets/resources/pixelstage/scene.json"] = strToU8(JSON.stringify(pack.scene, null, 2));
+  files["assets/scripts/PixelStageScene.ts"] = text(COCOS_SCRIPT);
+  files["README-cocos.txt"] = text(COCOS_README);
+  return files;
 }
 
 const COCOS_README = `PixelStage → Cocos Creator 3.x
 ==============================
 
-Import steps
-------------
-1. In your Cocos Creator project, create the folder: assets/resources/pixelstage/
-2. Copy ALL PNGs from this package's assets/ folder into it (flat, no subfolder).
-3. Copy scene.json into the same folder (assets/resources/pixelstage/scene.json).
-4. Copy PixelStageScene.ts anywhere under assets/ (e.g. assets/scripts/).
-5. Create an empty node in your scene, add the PixelStageScene component,
-   and press Play — the layers, camera, fog and sun rebuild themselves.
+Import steps (one copy)
+-----------------------
+1. Copy the CONTENTS of this package's assets/ folder into your Cocos
+   Creator project's assets/ folder. You should end up with:
+     assets/resources/pixelstage/scene.json  (+ all layer PNGs)
+     assets/scripts/PixelStageScene.ts
+2. In your scene, create an empty node, add the PixelStageScene component
+   to it, and press Play — layers, camera, fog and sun rebuild themselves.
 
 Notes
 -----
